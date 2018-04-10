@@ -1,6 +1,6 @@
 {
-    "deferred": false,
-    "async": true,
+    "deferred": true,
+    "async": false,
     "verbosity": 5,
     "capture_console": true
 }
