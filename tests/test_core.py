@@ -9,6 +9,7 @@ class TestCore(DeferrableTestCase):
 
     def create_constellation(self, name):
         sublime.run_command("create_constellation", {"name": name})
+        yield 1000
 
         # confirm the constellation record exists
         s = sublime.load_settings("Constellation.sublime-settings")
