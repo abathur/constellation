@@ -1,15 +1,9 @@
-env:
-    global:
-        - PACKAGE="Constellation"
-        - SUBLIME_TEXT_VERSION="3"
+os:
+  - linux
+  - osx
 
-matrix:
-    include:
-        - os: linux
-          language: python
-          python: 3.3
-        - os: osx
-          language: generic
+env:
+    - PACKAGE="Constellation" SUBLIME_TEXT_VERSION="3"
 
 before_install:
     - curl -OL https://raw.githubusercontent.com/randy3k/UnitTesting/master/sbin/travis.sh
@@ -22,7 +16,7 @@ install:
     - sh travis.sh bootstrap
 
 script:
-    - sh travis.sh run_tests --coverage
+    - sh travis.sh run_tests
 
 notifications:
     email:
