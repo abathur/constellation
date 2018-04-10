@@ -1,5 +1,5 @@
 {
-    "deferred": true,
+    "deferred": false,
     "async": true,
     "verbosity": 5,
     "capture_console": true
