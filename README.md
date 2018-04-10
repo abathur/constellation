@@ -10,17 +10,17 @@ Since a project can be in as many constellations as you like, you can use Conste
 ## Known issues
 I hacked this together over quickly between compilation runs just to sand down a rough spot in my ST3 workflow. It now meets these goals, and is part of my daily workflow. I've found it useful enough that keeping it private seemed like a shame. My plate's too full to polish it up any time soon. You may want to avoid the following, unless you'd can contribute thoughtful PRs addressing them:
 
-#. The plugin assumes 2 commands will be available on your path: `find`, and `ln (link)`. The "Add project by file" and "Upgrade & add workspace" features won't work without them. I haven't implemented any kind of detection/messaging or pure-python fallbacks.
+1. The plugin assumes 2 commands will be available on your path: `find`, and `ln (link)`. The "Add project by file" and "Upgrade & add workspace" features won't work without them. I haven't implemented any kind of detection/messaging or pure-python fallbacks.
 
-#. These same two features are disabled unless you (manually, for now) add a "search_path" key to the root of your `Constellation.sublime-settings` file. This path tells Constellation where to run `find` (with `-maxdepth 5`) to search for project files. Constellation can load open projects without searching for their files, so one work-around is to just manually open the project before adding it to a constellation.
+2. These same two features are disabled unless you (manually, for now) add a "search_path" key to the root of your `Constellation.sublime-settings` file. This path tells Constellation where to run `find` (with `-maxdepth 5`) to search for project files. Constellation can load open projects without searching for their files, so one work-around is to just manually open the project before adding it to a constellation.
 
-#. While I think the core features should work on Windows, I don't have one to test this on. The "Add project by file" and "Upgrade & add workspace" features won't work without the `find` and `ln`/`link` commands, however. It shouldn't be too hard to make this work correctly for someone with access to Windows.
+3. While I think the core features should work on Windows, I don't have one to test this on. The "Add project by file" and "Upgrade & add workspace" features won't work without the `find` and `ln`/`link` commands, however. It shouldn't be too hard to make this work correctly for someone with access to Windows.
 
-#. It's possible to create state inconsistencies using built-in or other project-management tools. If you open a constellation and then use some other menu to close all of the projects, Constellation will still think the constellation is open. This probably also applies if you *don't* use the hot-exit feature (i.e.). For now, I recommend closing and reopening the constellation to fix issues like this. See issue #1 for a little more information on the pitfalls of addressing this.
+4. It's possible to create state inconsistencies using built-in or other project-management tools. If you open a constellation and then use some other menu to close all of the projects, Constellation will still think the constellation is open. This probably also applies if you *don't* use the hot-exit feature (i.e.). For now, I recommend closing and reopening the constellation to fix issues like this. See issue #1 for a little more information on the pitfalls of addressing this.
 
-#. I haven't tried to abuse the plugin by introducing too many of these state inconsistencies. I suspect most of them are largely cosmetic, but it's possible that it will have resilience/reliability issues if operated in environments that regularly produce these issues.
+5. I haven't tried to abuse the plugin by introducing too many of these state inconsistencies. I suspect most of them are largely cosmetic, but it's possible that it will have resilience/reliability issues if operated in environments that regularly produce these issues.
 
-#. Constellation could be a great tool for improving workflow on different systems, but it presently makes no attempt to handle the path-portability issues needed to support this use case. You may need to either send in a PR or do some manual shell scripting to port your constellations between systems. See issue #2 for a little more on what I suspect this will entail.
+6. Constellation could be a great tool for improving workflow on different systems, but it presently makes no attempt to handle the path-portability issues needed to support this use case. You may need to either send in a PR or do some manual shell scripting to port your constellations between systems. See issue #2 for a little more on what I suspect this will entail.
 
 
 ## Contributing
