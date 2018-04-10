@@ -9,7 +9,7 @@ class TestCore(DeferrableTestCase):
 
     def create_constellation(self, name):
         sublime.run_command("create_constellation", {"name": name})
-        yield 1000
+        yield 1000 # delay to give ST3 time to work
 
         # confirm the constellation record exists
         s = sublime.load_settings("Constellation.sublime-settings")
@@ -17,7 +17,7 @@ class TestCore(DeferrableTestCase):
 
     def open_constellation(self, name):
         sublime.run_command("open_constellation", {"constellation": name})
-        yield 1000
+        yield 1000 # delay to give ST3 time to work
 
         # confirm the projects are open
         s = sublime.load_settings("Constellation.sublime-settings")
@@ -30,7 +30,7 @@ class TestCore(DeferrableTestCase):
 
     def close_constellation(self, name):
         sublime.run_command("close_constellation", {"constellation": name})
-        yield 1000
+        yield 1000 # delay to give ST3 time to work
 
         # confirm the projects are closed
         s = sublime.load_settings("Constellation.sublime-settings")
@@ -43,6 +43,7 @@ class TestCore(DeferrableTestCase):
 
     def destroy_constellation(self, name):
         sublime.run_command("destroy_constellation", {"constellation": name})
+        yield 1000 # delay to give ST3 time to work
 
         # confirm constellation record is gone
         s = sublime.load_settings("Constellation.sublime-settings")
@@ -57,6 +58,8 @@ class TestCore(DeferrableTestCase):
         sublime.run_command(
             "add_project", {"constellation": constellation, "project": project_path}
         )
+        yield 1000 # delay to give ST3 time to work
+
         # confirm it is added
         s = sublime.load_settings("Constellation.sublime-settings")
         self.assertIn(project_path, s.get("constellations")[constellation]["projects"])
@@ -69,6 +72,8 @@ class TestCore(DeferrableTestCase):
         sublime.run_command(
             "remove_project", {"constellation": constellation, "project": project_path}
         )
+        yield 1000 # delay to give ST3 time to work
+
         # confirm it is removed
         s = sublime.load_settings("Constellation.sublime-settings")
         self.assertNotIn(
