@@ -1,0 +1,46 @@
+[
+    {
+        "caption": "Tools",
+        "mnemonic": "C",
+        "id": "constellation",
+        "children":
+        [
+            {
+                "caption": "New",
+                "command": "new_constellation"
+            },
+            {
+                "caption": "Remove",
+                "command": "remove_constellation"
+            },
+            {
+                "caption": "Rename",
+                "command": "rename_constellation"
+            },
+            {
+                "caption": "Open",
+                "command": "open_constellation"
+            },
+            {
+                "caption": "Close",
+                "command": "close_constellation"
+            },
+            {
+                "caption": "Find Project",
+                "command": "find_project"
+            },
+            {
+                "caption": "Upgrade Workspace",
+                "command": "upgrade_workspace"
+            },
+            {
+                "caption": "Add Project",
+                "command": "add_project"
+            },
+            {
+                "caption": "Remove Project",
+                "command": "remove_project"
+            }
+        ]
+    }
+]

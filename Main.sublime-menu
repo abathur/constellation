@@ -1,0 +1,67 @@
+[
+    {
+        "caption": "[❉]",
+        "id": "constellation",
+        "children":
+        [
+            {
+                "command": "info",
+            },
+            { "command": "open_constellations", "args": {"index": 0 } },
+            { "command": "open_constellations", "args": {"index": 1 } },
+            { "command": "open_constellations", "args": {"index": 2 } },
+            { "command": "open_constellations", "args": {"index": 3 } },
+            { "command": "open_constellations", "args": {"index": 4 } },
+            { "command": "open_constellations", "args": {"index": 5 } },
+            { "command": "open_constellations", "args": {"index": 6 } },
+            { "command": "open_constellations", "args": {"index": 7 } },
+            { "command": "open_constellations", "args": {"index": 8 } },
+            { "command": "open_constellations", "args": {"index": 9 } },
+            { "command": "open_constellations", "args": {"index": 10 } },
+            { "command": "open_constellations", "args": {"index": 11 } },
+            { "command": "open_constellations", "args": {"index": 12 } },
+            { "command": "open_constellations", "args": {"index": 13 } },
+            { "command": "open_constellations", "args": {"index": 14 } },
+            { "command": "open_constellations", "args": {"index": 15 } },
+            { "caption": "-" },
+            {
+                "caption": "Open a constellation",
+                "command": "open_constellation"
+            },
+            {
+                "caption": "Close a constellation",
+                "command": "close_constellation"
+            },
+            { "caption": "-" },
+            {
+                "caption": "Create a constellation",
+                "command": "create_constellation"
+            },
+            {
+                "caption": "Destroy a constellation",
+                "command": "destroy_constellation"
+            },
+            {
+                "caption": "Rename a constellation",
+                "command": "rename_constellation"
+            },
+            { "caption": "-" },
+            {
+                "caption": "Add an open project",
+                "command": "add_project"
+            },
+            {
+                "caption": "Add a project by file",
+                "command": "find_project"
+            },
+            {
+                "caption": "Upgrade & add a workspace",
+                "command": "upgrade_workspace"
+            },
+            {
+                "caption": "Remove a project",
+                "command": "remove_project"
+            }
+        ]
+    }
+]

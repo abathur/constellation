@@ -1,0 +1,38 @@
+[
+    {
+        "caption": "Constellation: Create",
+        "command": "create_constellation"
+    },
+    {
+        "caption": "Constellation: Destroy",
+        "command": "destroy_constellation"
+    },
+    {
+        "caption": "Constellation: Rename",
+        "command": "rename_constellation"
+    },
+    {
+        "caption": "Constellation: Open",
+        "command": "open_constellation"
+    },
+    {
+        "caption": "Constellation: Close",
+        "command": "close_constellation"
+    },
+    {
+        "caption": "Constellation: Add project by file",
+        "command": "find_project"
+    },
+    {
+        "caption": "Constellation: Upgrade & add workspace",
+        "command": "upgrade_workspace"
+    },
+    {
+        "caption": "Constellation: Add open project",
+        "command": "add_project"
+    },
+    {
+        "caption": "Constellation: Remove project",
+        "command": "remove_project"
+    }
+]

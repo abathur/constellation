@@ -1,0 +1,7 @@
+[run]
+omit =
+    /*/tests/*
+    /*/subl.py
+
+[report]
+ignore_errors = True
