@@ -4,14 +4,8 @@ import os
 from unittesting import DeferrableTestCase
 import Constellation
 
-version = sublime.version()
-
 
 class TestCore(DeferrableTestCase):
-
-	def set_up(self):
-        s = sublime.load_settings("Preferences.sublime-settings")
-        s.set("close_windows_when_empty", False)
 
     def create_constellation(self, name):
         sublime.run_command("create_constellation", {"name": name})
