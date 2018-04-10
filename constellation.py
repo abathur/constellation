@@ -110,11 +110,9 @@ class RenameConstellationCommand(_ActiveConstellationCommand):
 class OpenConstellationCommand(_ClosedConstellationCommand):
 
     def run(self, constellation):
-        print(self, "open", constellation)
         self.open_constellation(constellation)
 
         for project in self.projects_for(constellation):
-            print("real opening", project)
             subl("-n", project)
 
 
@@ -137,7 +135,6 @@ class AddProjectCommand(_ActiveConstellationCommand):
         return collect.ProjectList()
 
     def run(self, constellation, project):
-        print(self, "add", constellation, project)
         self.add_to(constellation, project)
 
 
@@ -164,7 +161,6 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
 
         # load the workspace
         with open(workspace_path, "r") as infile:
-            print("loading", workspace_path, infile)
             workspace = json.load(infile)
 
         project = os.path.join(os.path.dirname(workspace_path), workspace["project"])
