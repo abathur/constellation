@@ -1,14 +1,14 @@
 # Constellation
 a simple take on project-/workflow-management for Sublime Text 3
 
-Constellation grants you one superpower--the ability to group existing projects into *a constellation*, which you can then then open or close them all together (by opening or closing the constellation).
+Constellation grants you one superpower--the ability to group existing projects into *a constellation*, which you can then then open or close all together (by opening or closing the constellation).
 
 Since a project can be in as many constellations as you like, you can use Constellation to compose a variety of workspaces (in the generic, non-Sublime sense).
 
 	Caution: Consider this alpha software for now. It hasn't been used far and wide yet, nor have I put in much polish work. I can't swear it won't break or eat something.
 
 ## Known issues
-I hacked this together over quickly between compilation runs just to sand down a rough spot in my ST3 workflow. It now meets these goals, and is part of my daily workflow. I've found it useful enough that keeping it private seemed like a shame. My plate's too full to polish it up any time soon. You may want to avoid the following, unless you'd can contribute thoughtful PRs addressing them:
+I hacked this together over quickly between compilation runs just to sand down a rough spot in my ST3 workflow. It now meets these goals, and is part of my daily workflow. I've found it useful enough that keeping it private seemed like a shame. My plate's too full to polish it up any time soon. You may want to avoid the following, unless you can contribute thoughtful PRs addressing them:
 
 1. The plugin assumes 2 commands will be available on your path: `find`, and `ln (link)`. The "Add project by file" and "Upgrade & add workspace" features won't work without them. I haven't implemented any kind of detection/messaging or pure-python fallbacks.
 
