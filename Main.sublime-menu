@@ -52,12 +52,30 @@
             },
             {
                 "caption": "Add a project by file",
-                "command": "find_project"
+                "command": "find_project",
+                "platform": "!Windows"
             },
             {
                 "caption": "Upgrade & add a workspace",
-                "command": "upgrade_workspace"
+                "command": "upgrade_workspace",
+                "platform": "!Windows"
             },
+            { "caption": "-", "platform": "Windows" },
+            {
+                "command": "windows_user_question",
+                "platform": "Windows"
+            },
+            {
+                "caption": "Add a project by file",
+                "command": "find_project",
+                "platform": "Windows"
+            },
+            {
+                "caption": "Upgrade & add a workspace",
+                "command": "upgrade_workspace",
+                "platform": "Windows",
+            },
+            { "caption": "-", "platform": "Windows" },
             {
                 "caption": "Remove a project",
                 "command": "remove_project"

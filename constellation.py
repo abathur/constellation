@@ -41,6 +41,15 @@ class InfoCommand(_BaseApplicationCommand):
             len(self.open_constellations), len(self.active_constellations)
         )
 
+# TODO: can remove below when a pure python or Windows-safe fallback for 'find' is implemented
+class WindowsUserQuestionCommand(_BaseApplicationCommand):
+
+    def is_enabled(self, *args):
+        return False
+
+    def description(self, *args):
+        return "Help wanted (see github) on these:"
+
 
 class OpenConstellationsCommand(_BaseApplicationCommand):
 
@@ -144,6 +153,9 @@ class AddProjectCommand(_ActiveConstellationCommand):
 class UpgradeWorkspaceCommand(AddProjectCommand):
 
     def is_enabled(self, *args):
+        # TODO: remove below when there's a fallback
+        if sublime.platform() == "windows":
+            return False
         search_root = self.search_path
         return True if search_root and len(search_root) and os.path.exists(
             search_root
@@ -203,6 +215,9 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
 class FindProjectCommand(AddProjectCommand):
 
     def is_enabled(self, *args):
+        # TODO: remove below when there's a fallback
+        if sublime.platform() == "windows":
+            return False
         search_root = self.search_path
         return True if search_root and len(search_root) and os.path.exists(
             search_root
