@@ -166,7 +166,7 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
 
     def run(self, constellation, workspace_path):
         if not workspace_path:
-            print(c.LOG_TEMPLATE, "Nothing found to upgrade")
+            #print(c.LOG_TEMPLATE, "Nothing found to upgrade")
             return
 
         workspace = None
@@ -190,14 +190,15 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
             with open(workspace_project, "w") as outfile:
                 json.dump({}, outfile, indent=1)
         else:
-            print(
-                c.LOG_TEMPLATE,
-                "I really hope we never get here",
-                workspace,
-                workspace_project,
-                workspace_path,
-                project,
-            )
+            pass
+            # print(
+            #     c.LOG_TEMPLATE,
+            #     "I really hope we never get here",
+            #     workspace,
+            #     workspace_project,
+            #     workspace_path,
+            #     project,
+            # )
 
         workspace["project"] = workspace_project
 

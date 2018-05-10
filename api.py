@@ -80,25 +80,25 @@ class API():
         defined = self.constellations
         defined[name] = {"archived": False, "open": False, "projects": []}
         self.constellations = defined
-        print(c.LOG_TEMPLATE, "Created constellation:", name)
+        #print(c.LOG_TEMPLATE, "Created constellation:", name)
 
     def remove_constellation(self, name):
         defined = self.constellations
         del defined[name]
         self.constellations = defined
-        print(c.LOG_TEMPLATE, "Removed constellation:", name)
+        #print(c.LOG_TEMPLATE, "Removed constellation:", name)
 
     def open_constellation(self, name):
         defined = self.constellations
         defined[name]["open"] = True
         self.constellations = defined
-        print(c.LOG_TEMPLATE, "Opened constellation:", name)
+        #print(c.LOG_TEMPLATE, "Opened constellation:", name)
 
     def close_constellation(self, name):
         defined = self.constellations
         defined[name]["open"] = False
         self.constellations = defined
-        print(c.LOG_TEMPLATE, "Closed constellation:", name)
+        #print(c.LOG_TEMPLATE, "Closed constellation:", name)
 
     def archive_constellation(self, name):
         defined = self.constellations
@@ -115,7 +115,7 @@ class API():
         defined[new_name] = defined[name]
         del defined[name]
         self.constellations = defined
-        print(c.LOG_TEMPLATE, "Renamed constellation:", name, "->", new_name)
+        #print(c.LOG_TEMPLATE, "Renamed constellation:", name, "->", new_name)
 
     def projects_for(self, name):
         return self.constellations[name]["projects"]
@@ -124,10 +124,10 @@ class API():
         defined = self.constellations
         defined[name]["projects"].append(project)
         self.constellations = defined
-        print(c.LOG_TEMPLATE, "Add project:", project, "to", name)
+        #print(c.LOG_TEMPLATE, "Add project:", project, "to", name)
 
     def remove_from(self, name, project):
         defined = self.constellations
         defined[name]["projects"].remove(project)
         self.constellations = defined
-        print(c.LOG_TEMPLATE, "Remove project:", project, "from", name)
+        #print(c.LOG_TEMPLATE, "Remove project:", project, "from", name)
