@@ -121,13 +121,15 @@ class API():
         return self.constellations[name]["projects"]
 
     def add_to(self, name, project):
-        defined = self.constellations
-        defined[name]["projects"].append(project)
-        self.constellations = defined
-        #print(c.LOG_TEMPLATE, "Add project:", project, "to", name)
+        if name and project:
+            defined = self.constellations
+            defined[name]["projects"].append(project)
+            self.constellations = defined
+            #print(c.LOG_TEMPLATE, "Add project:", project, "to", name)
 
     def remove_from(self, name, project):
-        defined = self.constellations
-        defined[name]["projects"].remove(project)
-        self.constellations = defined
-        #print(c.LOG_TEMPLATE, "Remove project:", project, "from", name)
+        if name and project:
+            defined = self.constellations
+            defined[name]["projects"].remove(project)
+            self.constellations = defined
+            #print(c.LOG_TEMPLATE, "Remove project:", project, "from", name)
