@@ -21,17 +21,17 @@ You can now close (and open) these projects by closing or opening the constellat
 ## Rough edges
 I hacked this together between builds to sand down a rough spot in my ST3 workflow. It meets these goals in my daily workflow and keeping it private seemed like a shame, but I don't have time to polish it for now. Could use help with these rough spots:
 
-1. If multiple open constellations contain the same project, closing any will also close the project. #6
+1. If multiple open constellations contain the same project, closing any will also close the project.
 
-2. If you (or another plugin) are opening and closing projects, this plugin will still think a constellation is "open" after you manually close all of its projects. I recommend closing and reopening the constellation if you think it is out of step. #1
+2. If you (or another plugin) are opening and closing projects, this plugin will still think a constellation is "open" after you manually close all of its projects. I recommend closing and reopening the constellation if you think it is out of step.
 
 3. The "Add project by file" and "Upgrade & add workspace" commands:
 	- won't work unless `find`, and `ln (link)` are available on your path (they lack detection, messaging and pure-python fallbacks)
-	- are disabled by default on Windows for the same reason
+	- are disabled by default on Windows for this reason
 	- are disabled on all platforms until you (manually, for now) add a "search_path" key to the root of your `Constellation.sublime-settings` file. This path tells Constellation where to run `find` (with `-maxdepth 5`) to search for project files.
 
 ## Contributing
-I'll gladly triage feature requests, but the quickest way to get an approved feature incorporated will be a thoughtful pull request. If you'd like to help improve Constellation:
+I'm happy to triage feature requests, but the quickest way to get one in will be a thoughtful pull request. If you'd like to help improve Constellation:
 
 1. remove any local copy of Constellation (either through package control, or removing the directory if you cloned it)
 2. fork this repo
