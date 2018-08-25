@@ -6,12 +6,14 @@ class API():
     state = None
 
     @classmethod
-    def load_state(cls):
-        cls.state = sublime.load_settings(c.PLUGIN_SETTINGS_FILE) or {}
+    def load_state(cls, settings_file=None):
+        cls.state = sublime.load_settings(
+            settings_file or c.PLUGIN_SETTINGS_FILE
+        ) or {}
 
     @classmethod
-    def save_state(cls):
-        sublime.save_settings(c.PLUGIN_SETTINGS_FILE)
+    def save_state(cls, settings_file=None):
+        sublime.save_settings(settings_file or c.PLUGIN_SETTINGS_FILE)
 
     @property
     def constellations(self):

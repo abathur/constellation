@@ -1,100 +1,189 @@
+"""
+TODO: I'm really starting to chafe at the organization of this, but I don't have time to break it up right now.
+"""
+
 import sublime
 import os
 
 from unittesting import DeferrableTestCase
 import Constellation
+from Constellation import input_handlers
 
 
 class TestCore(DeferrableTestCase):
+    state = None
+
+    def setUp(self):
+        Constellation.api.API.load_state()
+        self.state = Constellation.api.API.state
+
+    def tearDown(self):
+        try:
+            self.close_constellation("test_one")
+        # some tests close it on their own...
+        except KeyError:
+            pass
 
     def create_constellation(self, name):
         sublime.run_command("create_constellation", {"name": name})
-        yield 1000 # delay to give ST3 time to work
+        return 1000 # delay to give ST3 time to work
 
+    def test_create_constellation(self):
+        yield self.create_constellation("test_one")
         # confirm the constellation record exists
-        s = sublime.load_settings("Constellation.sublime-settings")
-        self.assertIn(name, s.get("constellations"))
+        self.assertIn("test_one", self.state.get("constellations"))
+
+        # TODO: confirm it shows up in the open, destroy, and rename menus
 
     def open_constellation(self, name):
         sublime.run_command("open_constellation", {"constellation": name})
-        yield 1000 # delay to give ST3 time to work
-
-        # confirm the projects are open
-        s = sublime.load_settings("Constellation.sublime-settings")
-        open_projects = set([win.project_file_name() for win in sublime.windows()])
-        for project in s.get("constellations")[name]["projects"]:
-            self.assertIn(project, open_projects)
-
-        # confirm constellation marked open
-        self.assertTrue(s.get("constellations")[name]["open"])
+        return 1000 # delay to give ST3 time to work
 
     def close_constellation(self, name):
         sublime.run_command("close_constellation", {"constellation": name})
-        yield 1000 # delay to give ST3 time to work
+        return 1000 # delay to give ST3 time to work
+
+    def test_open_and_close_constellation(self):
+        constellation = "test_one"
+        onepath = self.make_project_path("one.sublime-project")
+        twopath = self.make_project_path("two.sublime-project")
+        # create a constellation
+        yield self.create_constellation(constellation)
+
+        # add a couple projects to it
+        yield self.add_constellation_project(constellation, onepath)
+        yield self.add_constellation_project(constellation, twopath)
+
+        # open the constellation
+        yield self.open_constellation(constellation)
+
+        # confirm the projects are open
+        open_projects = set([win.project_file_name() for win in sublime.windows()])
+        for project in self.state.get("constellations")[constellation]["projects"]:
+            self.assertIn(project, open_projects)
+
+        # confirm constellation marked open
+        self.assertTrue(self.state.get("constellations")[constellation]["open"])
+
+        # TODO: confirm constellation shows up in close menu
+
+        yield self.close_constellation(constellation)
 
         # confirm the projects are closed
-        s = sublime.load_settings("Constellation.sublime-settings")
         open_projects = set([win.project_file_name() for win in sublime.windows()])
-        for project in s.get("constellations")[name]["projects"]:
+        for project in self.state.get("constellations")[constellation]["projects"]:
             self.assertNotIn(project, open_projects)
 
         # confirm const is marked closed
-        self.assertFalse(s.get("constellations")[name]["open"])
+        self.assertFalse(self.state.get("constellations")[constellation]["open"])
 
     def destroy_constellation(self, name):
         sublime.run_command("destroy_constellation", {"constellation": name})
-        yield 1000 # delay to give ST3 time to work
+        return 1000 # delay to give ST3 time to work
 
-        # confirm constellation record is gone
-        s = sublime.load_settings("Constellation.sublime-settings")
-        self.assertNotIn(name, s.get("constellations"))
-
-    def add_constellation_project(self, constellation, project_filename):
-
-        project_path = os.path.join(
-            *(Constellation.__path__._path + ["tests", project_filename])
-        )
-
-        sublime.run_command(
-            "add_project", {"constellation": constellation, "project": project_path}
-        )
-        yield 1000 # delay to give ST3 time to work
-
-        # confirm it is added
-        s = sublime.load_settings("Constellation.sublime-settings")
-        self.assertIn(project_path, s.get("constellations")[constellation]["projects"])
-
-    def remove_constellation_project(self, constellation, project_filename):
-        project_path = os.path.join(
-            *(Constellation.__path__._path + ["tests", project_filename])
-        )
-
-        sublime.run_command(
-            "remove_project", {"constellation": constellation, "project": project_path}
-        )
-        yield 1000 # delay to give ST3 time to work
-
-        # confirm it is removed
-        s = sublime.load_settings("Constellation.sublime-settings")
-        self.assertNotIn(
-            project_path, s.get("constellations")[constellation]["projects"]
-        )
-
-    # TODO: not sure how well this actually exercises input handlers, though coverage claims to be at 56%; may not be fair to claim core is tested if we aren't confirming the correct items are showing up in menus?
-
-    def test_core_commands(self):
+    def test_destroy_constellation(self):
         # create a constellation
-        self.create_constellation("test_one")
+        constellation = "test_one"
+        yield self.create_constellation(constellation)
+
+        # destroy it
+        yield self.destroy_constellation(constellation)
+
+        # confirm it's not in the list
+        self.assertNotIn(constellation, self.state.get("constellations"))
+
+        # TODO: confirm it no longer shows up in open, close, rename, destroy menus
+
+
+    @staticmethod
+    def make_project_path(filename):
+        return os.path.join(
+            *(Constellation.__path__._path + ["tests", filename])
+        )
+
+    def add_constellation_project(self, constellation, proj_path):
+        sublime.run_command(
+            "add_project", {
+                "constellation": constellation,
+                "project": proj_path
+            }
+        )
+        return 1000 # delay to give ST3 time to work
+
+    def test_add_constellation_projects(self):
+        constellation = "test_one"
+        # create a constellation
+        yield self.create_constellation(constellation)
 
         # add a couple projects to it
-        self.add_constellation_project("test_one", "one.sublime-project")
-        self.add_constellation_project("test_one", "two.sublime-project")
+        onepath = self.make_project_path("one.sublime-project")
+        yield self.add_constellation_project(constellation, onepath)
 
-        # open the constellation
-        self.open_constellation("test_one")
+        # confirm it is added
+        self.assertIn(onepath, self.state.get("constellations")[constellation]["projects"])
 
-        # remove a project from the constellation
-        self.remove_constellation_project("test_one", "two.sublime-project")
+        twopath = self.make_project_path("two.sublime-project")
+        yield self.add_constellation_project(constellation, twopath)
 
-        # remove the constellation
-        self.destroy_constellation("test_one")
+        self.assertIn(twopath, self.state.get("constellations")[constellation]["projects"])
+        yield 100
+
+        self.remove_project_menu_contains(
+            "test_one",
+            [
+                ("one.sublime-project", "wrongboy"),
+                ("two.sublime-project", "rightboy"),
+            ]
+        )
+
+    def remove_constellation_project(self, constellation, proj_path):
+        sublime.run_command(
+            "remove_project", {
+                "constellation": constellation,
+                "project": proj_path
+            }
+        )
+        return 1000 # delay to give ST3 time to work
+
+    def test_remove_constellation_project(self):
+        constellation = "test_one"
+        onepath = self.make_project_path("one.sublime-project")
+        # create a constellation
+        yield self.create_constellation(constellation)
+
+        self.assertNotIn(
+            onepath, self.state.get("constellations")[constellation]["projects"]
+        )
+        yield 100
+        # add a couple projects to it
+
+        yield self.add_constellation_project(constellation, onepath)
+
+        self.assertIn(
+            onepath, self.state.get("constellations")[constellation]["projects"]
+        )
+        yield 100
+
+        yield self.remove_constellation_project(constellation, onepath)
+
+        # confirm it is removed
+        self.assertNotIn(
+            onepath, self.state.get("constellations")[constellation]["projects"]
+        )
+
+        # TODO: confirm it no longer appears in the remove menu
+        yield 100
+
+    def remove_project_menu(self, constellation):
+        handle = input_handlers.ConstellationProjectList()
+        return handle.next_input({"constellation": constellation}).list_items()
+
+    def remove_project_menu_contains(self, constellation, projects):
+        # make sure the remove menu has the right projects:
+        self.assertEqual(
+            set(self.remove_project_menu("test_one")),
+            set([
+                ("one.sublime-project", self.make_project_path("one.sublime-project")),
+                ("two.sublime-project", self.make_project_path("two.sublime-project")),
+            ])
+        )

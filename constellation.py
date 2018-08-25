@@ -20,7 +20,6 @@ from . import constants as c
 def plugin_loaded():
     API.load_state()
 
-
 def plugin_unloaded():
     API.save_state()
 
@@ -128,6 +127,9 @@ class OpenConstellationCommand(_ClosedConstellationCommand):
 class CloseConstellationCommand(_OpenConstellationCommand):
 
     def run(self, constellation):
+        if constellation not in self.open_constellations:
+            return
+
         for project in self.projects_for(constellation):
             for window in sublime.windows():
                 if window.project_file_name() == project:
@@ -240,5 +242,4 @@ class RemoveProjectCommand(_ActiveConstellationCommand):
         return collect.ConstellationProjectList()
 
     def run(self, constellation, project):
-        super().run(constellation, project)
         self.remove_from(constellation, project)
