@@ -60,10 +60,12 @@ class TestCore(DeferrableTestCase):
         # confirm the projects are open
         open_projects = set([win.project_file_name() for win in sublime.windows()])
         for project in self.state.get("constellations")[constellation]["projects"]:
+            yield 100
             self.assertIn(project, open_projects)
 
         # confirm constellation marked open
         self.assertTrue(self.state.get("constellations")[constellation]["open"])
+        yield 100
 
         # TODO: confirm constellation shows up in close menu
 
