@@ -1,13 +1,9 @@
 # Constellation
 simple project & workflow manager for Sublime Text 3
 
-Constellation grants one superpower--it can group existing projects into *a constellation* in order to open or close them as a group. Projects can be in more than one constellation.
+Constellation grants one superpower--it can group existing projects into *a constellation* you want to open or close together. Projects can be in more than one constellation.
 
 ![constellation](https://user-images.githubusercontent.com/2548365/39898663-5dc4dcae-547d-11e8-96ba-613f81c2078f.png)
-
-	this alpha software
-	needs polish and exercise
-	lest it eat homework
 
 ## Getting started
 1. Install Constellation via [Package Control](https://packagecontrol.io/)
