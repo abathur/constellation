@@ -237,7 +237,8 @@ class FindProjectCommand(AddProjectCommand):
 class RemoveProjectCommand(_ActiveConstellationCommand):
 
     def input(self, args):
-        return collect.ProjectList()
+        return collect.ConstellationProjectList()
 
     def run(self, constellation, project):
+        super().run(constellation, project)
         self.remove_from(constellation, project)

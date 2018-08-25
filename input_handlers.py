@@ -47,7 +47,15 @@ class SelectActiveConstellationList(SelectConstellationList):
     _generator = lambda self: self.active_constellations
 
 
-class OpenProjectList(sublime_plugin.ListInputHandler, API):
+class BaseProjectList(sublime_plugin.ListInputHandler, API):
+    def placeholder(self):
+        return "Select a .sublime-project"
+
+    def name(self):
+        return "project"
+
+
+class OpenProjectList(BaseProjectList):
     exclude = []
 
     def __init__(self, exclude):
@@ -68,11 +76,23 @@ class OpenProjectList(sublime_plugin.ListInputHandler, API):
             )
         )
 
-    def placeholder(self):
-        return "Select a .sublime-project"
 
-    def name(self):
-        return "project"
+class ExplicitProjectList(BaseProjectList):
+    projects = []
+
+    def __init__(self, projects):
+        self.projects = projects or []
+        super().__init__()
+
+    def list_items(self):
+        return list(
+            set(
+                [
+                    (x.split("/")[-1], x)
+                    for x in self.projects
+                ]
+            )
+        )
 
 
 # TODO: for now, we're assuming the user is smart enough to figure out if there's a workspace/project pair here, but ideally we should check.
@@ -133,6 +153,12 @@ class ProjectList(SelectActiveConstellationList):
 
     def next_input(self, args):
         return OpenProjectList(self.constellations[args["constellation"]]["projects"])
+
+
+class ConstellationProjectList(SelectActiveConstellationList):
+
+    def next_input(self, args):
+        return ExplicitProjectList(self.constellations[args["constellation"]]["projects"])
 
 
 class FoundWorkspaceList(SelectConstellationList):
