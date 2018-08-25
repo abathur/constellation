@@ -19,7 +19,7 @@ class TestCore(DeferrableTestCase):
 
     def tearDown(self):
         try:
-            self.close_constellation("test_one")
+            self.destroy_constellation("test_one")
         # some tests close it on their own...
         except KeyError:
             pass

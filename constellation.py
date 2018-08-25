@@ -10,6 +10,7 @@ import sublime_plugin
 import os
 import subprocess
 import json
+import time
 
 from .subl import subl
 from . import input_handlers as collect
@@ -103,6 +104,8 @@ class CreateConstellationCommand(_BaseApplicationCommand):
 class DestroyConstellationCommand(_ActiveConstellationCommand):
 
     def run(self, constellation):
+        if constellation not in self.constellations:
+            return
         self.remove_constellation(constellation)
 
 
@@ -112,6 +115,8 @@ class RenameConstellationCommand(_ActiveConstellationCommand):
         return collect.RenameList()
 
     def run(self, constellation, new_name):
+        if constellation not in self.constellations:
+            return
         self.rename_constellation(constellation, new_name)
 
 
@@ -122,6 +127,8 @@ class OpenConstellationCommand(_ClosedConstellationCommand):
 
         for project in self.projects_for(constellation):
             subl("-n", project)
+            # sometimes multiple projects don't open right; this superstitious pause seems to help.
+            time.sleep(0.200)
 
 
 class CloseConstellationCommand(_OpenConstellationCommand):
