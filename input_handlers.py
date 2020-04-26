@@ -85,21 +85,13 @@ class ExplicitProjectList(BaseProjectList):
         super().__init__()
 
     def list_items(self):
-        return list(
-            set(
-                [
-                    (x.split("/")[-1], x)
-                    for x in self.projects
-                ]
-            )
-        )
+        return list(set([(x.split("/")[-1], x) for x in self.projects]))
 
 
 # TODO: for now, we're assuming the user is smart enough to figure out if there's a workspace/project pair here, but ideally we should check.
 
 
 class UpgradeWorkspaceList(sublime_plugin.ListInputHandler, API):
-
     def list_items(self, *args):
         cmd = "find {:} -maxdepth 5 -name '*.sublime-workspace'".format(
             self.search_path
@@ -123,7 +115,6 @@ class UpgradeWorkspaceList(sublime_plugin.ListInputHandler, API):
 
 
 class SearchProjectList(OpenProjectList):
-
     def list_items(self, *args):
         cmd = "find {:} -maxdepth 5 -name '*.sublime-project'".format(self.search_path)
         projects = set()
@@ -144,30 +135,27 @@ class SearchProjectList(OpenProjectList):
 
 
 class RenameList(SelectActiveConstellationList):
-
     def next_input(self, args):  # args is inexplicably a kwarg dict
         return InputConstellationName(name="new_name")
 
 
 class ProjectList(SelectActiveConstellationList):
-
     def next_input(self, args):
         return OpenProjectList(self.constellations[args["constellation"]]["projects"])
 
 
 class ConstellationProjectList(SelectActiveConstellationList):
-
     def next_input(self, args):
-        return ExplicitProjectList(self.constellations[args["constellation"]]["projects"])
+        return ExplicitProjectList(
+            self.constellations[args["constellation"]]["projects"]
+        )
 
 
 class FoundWorkspaceList(SelectConstellationList):
-
     def next_input(self, *args):
         return UpgradeWorkspaceList()
 
 
 class FoundProjectList(SelectConstellationList):
-
     def next_input(self, args):
         return SearchProjectList(self.constellations[args["constellation"]]["projects"])

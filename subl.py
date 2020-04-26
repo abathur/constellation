@@ -29,7 +29,7 @@ import sublime_plugin
 def subl(*args):
     executable_path = sublime.executable_path()
     if sublime.platform() == "osx":
-        app_path = executable_path[:executable_path.rfind(".app/") + 5]
+        app_path = executable_path[: executable_path.rfind(".app/") + 5]
         executable_path = app_path + "Contents/SharedSupport/bin/subl"
 
     subprocess.Popen([executable_path] + list(args))

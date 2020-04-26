@@ -21,6 +21,7 @@ from . import constants as c
 def plugin_loaded():
     API.load_state()
 
+
 def plugin_unloaded():
     API.save_state()
 
@@ -31,8 +32,8 @@ class _BaseApplicationCommand(sublime_plugin.ApplicationCommand, API):
 
 # TODO: I won't pretend to completely grok when and why ST3's api uses the various arg-passing conventions it's using. May be worth a refactor when this is better understood.
 
-class InfoCommand(_BaseApplicationCommand):
 
+class InfoCommand(_BaseApplicationCommand):
     def is_enabled(self, *args):
         return False
 
@@ -41,9 +42,9 @@ class InfoCommand(_BaseApplicationCommand):
             len(self.open_constellations), len(self.active_constellations)
         )
 
+
 # TODO: can remove below when a pure python or Windows-safe fallback for 'find' is implemented
 class WindowsUserQuestionCommand(_BaseApplicationCommand):
-
     def is_enabled(self, *args):
         return False
 
@@ -52,7 +53,6 @@ class WindowsUserQuestionCommand(_BaseApplicationCommand):
 
 
 class OpenConstellationsCommand(_BaseApplicationCommand):
-
     def is_visible(self, index=None, **args):
         return index < len(self.open_constellations)
 
@@ -63,11 +63,13 @@ class OpenConstellationsCommand(_BaseApplicationCommand):
         const = None
         if index < len(self.open_constellations):
             const = self.open_constellations[index]
-        return "    {} [{}]".format(
-            const, "∗" * len(self.constellations[const]["projects"])
-        ) if index < len(
-            self.open_constellations
-        ) else "Oops. You shouldn't be seeing this. Better find someone who works here."
+        return (
+            "    {} [{}]".format(
+                const, "∗" * len(self.constellations[const]["projects"])
+            )
+            if index < len(self.open_constellations)
+            else "Oops. You shouldn't be seeing this. Better find someone who works here."
+        )
 
 
 class _ExistingConstellationCommand(_BaseApplicationCommand):
@@ -93,7 +95,6 @@ class _ActiveConstellationCommand(_ExistingConstellationCommand):
 
 
 class CreateConstellationCommand(_BaseApplicationCommand):
-
     def input(self, args):
         return collect.InputConstellationName()
 
@@ -102,7 +103,6 @@ class CreateConstellationCommand(_BaseApplicationCommand):
 
 
 class DestroyConstellationCommand(_ActiveConstellationCommand):
-
     def run(self, constellation):
         if constellation not in self.constellations:
             return
@@ -110,7 +110,6 @@ class DestroyConstellationCommand(_ActiveConstellationCommand):
 
 
 class RenameConstellationCommand(_ActiveConstellationCommand):
-
     def input(self, args):
         return collect.RenameList()
 
@@ -121,7 +120,6 @@ class RenameConstellationCommand(_ActiveConstellationCommand):
 
 
 class OpenConstellationCommand(_ClosedConstellationCommand):
-
     def run(self, constellation):
         self.open_constellation(constellation)
 
@@ -132,7 +130,6 @@ class OpenConstellationCommand(_ClosedConstellationCommand):
 
 
 class CloseConstellationCommand(_OpenConstellationCommand):
-
     def run(self, constellation):
         if constellation not in self.open_constellations:
             return
@@ -148,7 +145,6 @@ class CloseConstellationCommand(_OpenConstellationCommand):
 
 
 class AddProjectCommand(_ActiveConstellationCommand):
-
     def input(self, args):
         return collect.ProjectList()
 
@@ -160,22 +156,23 @@ class AddProjectCommand(_ActiveConstellationCommand):
 
 
 class UpgradeWorkspaceCommand(AddProjectCommand):
-
     def is_enabled(self, *args):
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
             return False
         search_root = self.search_path
-        return True if search_root and len(search_root) and os.path.exists(
-            search_root
-        ) else False
+        return (
+            True
+            if search_root and len(search_root) and os.path.exists(search_root)
+            else False
+        )
 
     def input(self, args):
         return collect.FoundWorkspaceList()
 
     def run(self, constellation, workspace_path):
         if not workspace_path:
-            #print(c.LOG_TEMPLATE, "Nothing found to upgrade")
+            # print(c.LOG_TEMPLATE, "Nothing found to upgrade")
             return
 
         workspace = None
@@ -223,15 +220,16 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
 
 
 class FindProjectCommand(AddProjectCommand):
-
     def is_enabled(self, *args):
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
             return False
         search_root = self.search_path
-        return True if search_root and len(search_root) and os.path.exists(
-            search_root
-        ) else False
+        return (
+            True
+            if search_root and len(search_root) and os.path.exists(search_root)
+            else False
+        )
 
     def input(self, args):
         return collect.FoundProjectList()
@@ -244,7 +242,6 @@ class FindProjectCommand(AddProjectCommand):
 
 
 class RemoveProjectCommand(_ActiveConstellationCommand):
-
     def input(self, args):
         return collect.ConstellationProjectList()
 

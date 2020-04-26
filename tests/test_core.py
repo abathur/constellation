@@ -1,5 +1,10 @@
 """
 TODO: I'm really starting to chafe at the organization of this, but I don't have time to break it up right now.
+
+See Randy3k's example of yielding lambdas during setup?
+https://github.com/SublimeText/UnitTesting/blob/master/unittesting/helpers/temp_directory_test_case.py
+
+I wonder if pytest is compatible with deferrabletestcase
 """
 
 import sublime
@@ -26,7 +31,7 @@ class TestCore(DeferrableTestCase):
 
     def create_constellation(self, name):
         sublime.run_command("create_constellation", {"name": name})
-        return 1000 # delay to give ST3 time to work
+        return 1000  # delay to give ST3 time to work
 
     def test_create_constellation(self):
         yield self.create_constellation("test_one")
@@ -37,11 +42,11 @@ class TestCore(DeferrableTestCase):
 
     def open_constellation(self, name):
         sublime.run_command("open_constellation", {"constellation": name})
-        return 1000 # delay to give ST3 time to work
+        return 1000  # delay to give ST3 time to work
 
     def close_constellation(self, name):
         sublime.run_command("close_constellation", {"constellation": name})
-        return 1000 # delay to give ST3 time to work
+        return 1000  # delay to give ST3 time to work
 
     def test_open_and_close_constellation(self):
         constellation = "test_one"
@@ -81,7 +86,7 @@ class TestCore(DeferrableTestCase):
 
     def destroy_constellation(self, name):
         sublime.run_command("destroy_constellation", {"constellation": name})
-        return 1000 # delay to give ST3 time to work
+        return 1000  # delay to give ST3 time to work
 
     def test_destroy_constellation(self):
         # create a constellation
@@ -96,21 +101,15 @@ class TestCore(DeferrableTestCase):
 
         # TODO: confirm it no longer shows up in open, close, rename, destroy menus
 
-
     @staticmethod
     def make_project_path(filename):
-        return os.path.join(
-            *(Constellation.__path__._path + ["tests", filename])
-        )
+        return os.path.join(*(Constellation.__path__._path + ["tests", filename]))
 
     def add_constellation_project(self, constellation, proj_path):
         sublime.run_command(
-            "add_project", {
-                "constellation": constellation,
-                "project": proj_path
-            }
+            "add_project", {"constellation": constellation, "project": proj_path}
         )
-        return 1000 # delay to give ST3 time to work
+        return 1000  # delay to give ST3 time to work
 
     def test_add_constellation_projects(self):
         constellation = "test_one"
@@ -122,30 +121,28 @@ class TestCore(DeferrableTestCase):
         yield self.add_constellation_project(constellation, onepath)
 
         # confirm it is added
-        self.assertIn(onepath, self.state.get("constellations")[constellation]["projects"])
+        self.assertIn(
+            onepath, self.state.get("constellations")[constellation]["projects"]
+        )
 
         twopath = self.make_project_path("two.sublime-project")
         yield self.add_constellation_project(constellation, twopath)
 
-        self.assertIn(twopath, self.state.get("constellations")[constellation]["projects"])
+        self.assertIn(
+            twopath, self.state.get("constellations")[constellation]["projects"]
+        )
         yield 100
 
         self.remove_project_menu_contains(
             "test_one",
-            [
-                ("one.sublime-project", "wrongboy"),
-                ("two.sublime-project", "rightboy"),
-            ]
+            [("one.sublime-project", "wrongboy"), ("two.sublime-project", "rightboy"),],
         )
 
     def remove_constellation_project(self, constellation, proj_path):
         sublime.run_command(
-            "remove_project", {
-                "constellation": constellation,
-                "project": proj_path
-            }
+            "remove_project", {"constellation": constellation, "project": proj_path}
         )
-        return 1000 # delay to give ST3 time to work
+        return 1000  # delay to give ST3 time to work
 
     def test_remove_constellation_project(self):
         constellation = "test_one"
@@ -184,8 +181,16 @@ class TestCore(DeferrableTestCase):
         # make sure the remove menu has the right projects:
         self.assertEqual(
             set(self.remove_project_menu("test_one")),
-            set([
-                ("one.sublime-project", self.make_project_path("one.sublime-project")),
-                ("two.sublime-project", self.make_project_path("two.sublime-project")),
-            ])
+            set(
+                [
+                    (
+                        "one.sublime-project",
+                        self.make_project_path("one.sublime-project"),
+                    ),
+                    (
+                        "two.sublime-project",
+                        self.make_project_path("two.sublime-project"),
+                    ),
+                ]
+            ),
         )
