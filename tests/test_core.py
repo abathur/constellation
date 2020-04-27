@@ -21,6 +21,7 @@ class TestCore(DeferrableTestCase):
     def setUp(self):
         Constellation.api.API.load_state()
         self.state = Constellation.api.API.state
+        self.open_constellations = Constellation.api.API._open_constellations
 
     def tearDown(self):
         try:
@@ -69,7 +70,7 @@ class TestCore(DeferrableTestCase):
             self.assertIn(project, open_projects)
 
         # confirm constellation marked open
-        self.assertTrue(self.state.get("constellations")[constellation]["open"])
+        self.assertTrue(constellation in self.open_constellations)
         yield 100
 
         # TODO: confirm constellation shows up in close menu
@@ -82,7 +83,7 @@ class TestCore(DeferrableTestCase):
             self.assertNotIn(project, open_projects)
 
         # confirm const is marked closed
-        self.assertFalse(self.state.get("constellations")[constellation]["open"])
+        self.assertTrue(constellation not in self.open_constellations)
 
     def destroy_constellation(self, name):
         sublime.run_command("destroy_constellation", {"constellation": name})

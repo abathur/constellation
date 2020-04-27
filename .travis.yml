@@ -1,22 +1,56 @@
-os:
-  - linux
-  - osx
+language: minimal
+
+_linux: &linux
+  os: linux
+  language: python
+  python: "3.6"
+  services:
+    - xvfb
+
+_macos: &macos
+  os: osx
+  # Travis CI uses macOS 10.13 and Xcode 9.4.1 by default; this is 10.14
+  osx_image: xcode11.3
+  language: generic
+
+# travis-ci also supports Windows, but the Windows support is non-GUI
+
+stages:
+  - lint
+  - test
 
 env:
-  - PACKAGE="Constellation" SUBLIME_TEXT_VERSION="3"
+  global:
+    - PACKAGE="Constellation"
+    - UNITTESTING_TAG="master"
 
-before_install:
-  - curl -OL https://raw.githubusercontent.com/randy3k/UnitTesting/master/sbin/travis.sh
-  - if [ "$TRAVIS_OS_NAME" == "linux"  ]; then
-      export DISPLAY=:99.0;
-      sh -e /etc/init.d/xvfb start;
-    fi
+before_install: curl -OL https://raw.githubusercontent.com/SublimeText/UnitTesting/${UNITTESTING_TAG}/sbin/travis.sh
 
-install:
-  - sh travis.sh bootstrap
+install: sh ./travis.sh bootstrap
+script: sh ./travis.sh run_tests
 
-script:
-  - sh travis.sh run_tests --coverage
+jobs:
+  fast_finish: true
+  include:
+    - stage: lint
+      os: linux # no need to run on another os
+      env: # none
+      language: python
+      before_install: # none
+      install:
+        - pip install black
+      script: black --check --target-version py33 --target-version py38
+    - <<: *linux
+      env: SUBLIME_TEXT_VERSION="3"
+    - <<: *macos
+      env: SUBLIME_TEXT_VERSION="3"
+    - <<: *linux
+      env: SUBLIME_TEXT_VERSION="4"
+    # this should eventually run, but we'll be polite about limited macOS CI resources until there's a nonzero chance of it actually completing
+    # - <<: *macos
+    #   env: SUBLIME_TEXT_VERSION="4"
+  allow_failures:
+    env: SUBLIME_TEXT_VERSION="4"
 
 notifications:
   email:

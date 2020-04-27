@@ -215,7 +215,7 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
 
         # at this point, we need to have taken the workspace file, added a link adjacent to the project file, and replaced the project key in the workspace file with the pointer to the adjacent file
 
-        if self.constellations[constellation]["open"]:
+        if constellation in self.open_constellations:
             subl("-n", project)
 
 
@@ -237,7 +237,7 @@ class FindProjectCommand(AddProjectCommand):
     def run(self, constellation, project):
         super().run(constellation, project)
 
-        if self.constellations[constellation]["open"]:
+        if constellation in self.open_constellations:
             subl("-n", project)
 
 

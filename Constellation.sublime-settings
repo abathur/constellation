@@ -1,3 +1,6 @@
 {
-	"constellations": {}
+	// You can back this up if you like
+	"constellations": {},
+	// migrated "open" from each constellation to cache?
+	"did_migrate_open": false
 }

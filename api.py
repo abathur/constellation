@@ -1,17 +1,58 @@
 import sublime
+import os
 from . import constants as c
 
 
 class API:
-    state = None
+    state = cache_dir = open_constellation_cache = None
+    _open_constellations = set()
 
     @classmethod
     def load_state(cls, settings_file=None):
         cls.state = sublime.load_settings(settings_file or c.PLUGIN_SETTINGS_FILE) or {}
 
+        constellations = cls.state.get("constellations", {})
+
+        if not cls.cache_dir:
+            cls.cache_dir = os.path.join(sublime.cache_path(), c.PLUGIN_NAME)
+            cls.open_constellation_cache = os.path.join(
+                cls.cache_dir, "open_constellations"
+            )
+            if not os.path.isdir(cls.cache_dir):
+                os.mkdir(cls.cache_dir)
+                os.path.mknod(cls.open_constellation_cache)
+        try:
+            with open(cls.open_constellation_cache) as cache:
+                cls._open_constellations = (
+                    set(cache.readlines()) & constellations.keys()
+                )
+        except FileNotFoundError:
+            cls._open_constellations = constellations.keys()
+
+        if not cls.state.get("did_migrate_open", False):
+            cls.do_migrate_open(constellations)
+
+    @classmethod
+    def do_migrate_open(cls, constellations):
+        for name, settings in constellations.items():
+            if "open" in settings:
+                if settings["open"]:
+                    cls._open_constellations.add(name)
+                del settings["open"]
+
+        cls.state.set("constellations", constellations)
+        cls.state.set("did_migrate_open", True)
+
     @classmethod
     def save_state(cls, settings_file=None):
         sublime.save_settings(settings_file or c.PLUGIN_SETTINGS_FILE)
+        with open(cls.open_constellation_cache, mode="w") as cache:
+            cache.write(
+                "\n".join(
+                    cls._open_constellations
+                    & cls.state.get("constellations", {}).keys()
+                )
+            )
 
     @property
     def constellations(self):
@@ -25,9 +66,7 @@ class API:
     @property
     def open_constellations(self):
         """Open"""
-        return [
-            k for k, v in self.state.get("constellations", {}).items() if v.get("open")
-        ]
+        return list(self._open_constellations)
 
     @property
     def open_projects(self):
@@ -45,27 +84,23 @@ class API:
     @property
     def closed_constellations(self):
         """Active, but not open"""
-        return [
-            k
-            for k, v in self.state.get("constellations", {}).items()
-            if not v.get("archived") and not v.get("open")
-        ]
+        return self.active_constellations - self._open_constellations
 
     @property
     def archived_constellations(self):
-        return [
+        return {
             k
             for k, v in self.state.get("constellations", {}).items()
             if v.get("archived")
-        ]
+        }
 
     @property
     def active_constellations(self):
-        return [
+        return {
             k
             for k, v in self.state.get("constellations", {}).items()
             if not v.get("archived")
-        ]
+        }
 
     @property
     def search_path(self):
@@ -78,7 +113,7 @@ class API:
 
     def add_constellation(self, name):
         defined = self.constellations
-        defined[name] = {"archived": False, "open": False, "projects": []}
+        defined[name] = {"archived": False, "projects": []}
         self.constellations = defined
         # print(c.LOG_TEMPLATE, "Created constellation:", name)
 
@@ -89,15 +124,11 @@ class API:
         # print(c.LOG_TEMPLATE, "Removed constellation:", name)
 
     def open_constellation(self, name):
-        defined = self.constellations
-        defined[name]["open"] = True
-        self.constellations = defined
+        self._open_constellations.add(name)
         # print(c.LOG_TEMPLATE, "Opened constellation:", name)
 
     def close_constellation(self, name):
-        defined = self.constellations
-        defined[name]["open"] = False
-        self.constellations = defined
+        self._open_constellations.remove(name)
         # print(c.LOG_TEMPLATE, "Closed constellation:", name)
 
     def archive_constellation(self, name):
