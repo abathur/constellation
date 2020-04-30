@@ -23,24 +23,29 @@ without a timeout error.
 """
 
 import sublime
+import sublime_plugin
 import os
 
 from unittesting import DeferrableTestCase
 import Constellation
-from Constellation import input_handlers
+from Constellation.util import input_handlers
 
 
 class TestCore(DeferrableTestCase):
-    state = None
+    state = api = None
 
     def setUp(self):
-        Constellation.api.API.load_state()
-        self.state = Constellation.api.API.state
-        self.open_constellations = Constellation.api.API._open_constellations
+        self.api = Constellation.util.api.API
+        self.api.load_state()
+        self.state = self.api.state
+
+    def open_constellations(self):
+        return self.api.open_constellations(self.api)
 
     def create_constellation(self, name, cleanup=True):
         if cleanup:
             self.addCleanup(self.destroy_constellation, name)
+
         sublime.run_command("create_constellation", {"name": name})
 
         return lambda: name in self.state.get("constellations")
@@ -51,13 +56,16 @@ class TestCore(DeferrableTestCase):
 
         # TODO: confirm it shows up in the open, destroy, and rename menus?
 
+        # clean up
+        self.destroy_constellation(constellation)
+
     def open_constellation(self, name):
         sublime.run_command("open_constellation", {"constellation": name})
-        return lambda: name in self.open_constellations
+        return lambda: name in self.open_constellations()
 
     def close_constellation(self, name):
         sublime.run_command("close_constellation", {"constellation": name})
-        return lambda: name not in self.open_constellations
+        return lambda: name not in self.open_constellations()
 
     def test_open_and_close_constellation(self):
         constellation = "test_open_and_close_constellation"
@@ -130,6 +138,9 @@ class TestCore(DeferrableTestCase):
             [("one.sublime-project", "wrongboy"), ("two.sublime-project", "rightboy"),],
         )
 
+        # clean up
+        self.destroy_constellation(constellation)
+
     def remove_constellation_project(self, constellation, proj_path):
         sublime.run_command(
             "remove_project", {"constellation": constellation, "project": proj_path}
@@ -157,6 +168,9 @@ class TestCore(DeferrableTestCase):
         yield self.remove_constellation_project(constellation, onepath)
 
         # TODO: confirm it no longer appears in the remove menu?
+
+        # clean up
+        self.destroy_constellation(constellation)
 
     def remove_project_menu(self, constellation):
         handle = input_handlers.ConstellationProjectList()

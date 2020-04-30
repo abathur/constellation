@@ -12,10 +12,10 @@ import subprocess
 import json
 import time
 
-from .subl import subl
-from . import input_handlers as collect
-from .api import API
-from . import constants as c
+from .util.subl import subl
+from .util import input_handlers as collect
+from .util.api import API
+from .util import constants as c
 
 
 def plugin_loaded():
@@ -39,7 +39,7 @@ class InfoCommand(_BaseApplicationCommand):
 
     def description(self, *args):
         return "Open Constellations: {:}/{:}".format(
-            len(self.open_constellations), len(self.active_constellations)
+            len(self._open_constellations), len(self.active_constellations())
         )
 
 
@@ -54,20 +54,21 @@ class WindowsUserQuestionCommand(_BaseApplicationCommand):
 
 class OpenConstellationsCommand(_BaseApplicationCommand):
     def is_visible(self, index=None, **args):
-        return index < len(self.open_constellations)
+        return index < len(self._open_constellations)
 
     def is_enabled(self, index=None, **args):
         return False
 
     def description(self, index=None, **args):
-        const = None
-        if index < len(self.open_constellations):
-            const = self.open_constellations[index]
+        const = relevant = None
+        if index < len(self._open_constellations):
+            relevant = self.open_constellations()
+            const = relevant[index]
         return (
             "    {} [{}]".format(
                 const, "∗" * len(self.constellations[const]["projects"])
             )
-            if index < len(self.open_constellations)
+            if index < len(relevant)
             else "Oops. You shouldn't be seeing this. Better find someone who works here."
         )
 
@@ -131,7 +132,7 @@ class OpenConstellationCommand(_ClosedConstellationCommand):
 
 class CloseConstellationCommand(_OpenConstellationCommand):
     def run(self, constellation):
-        if constellation not in self.open_constellations:
+        if constellation not in self._open_constellations:
             return
 
         for project in self.projects_for(constellation):
@@ -215,7 +216,7 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
 
         # at this point, we need to have taken the workspace file, added a link adjacent to the project file, and replaced the project key in the workspace file with the pointer to the adjacent file
 
-        if constellation in self.open_constellations:
+        if constellation in self._open_constellations:
             subl("-n", project)
 
 
@@ -237,7 +238,7 @@ class FindProjectCommand(AddProjectCommand):
     def run(self, constellation, project):
         super().run(constellation, project)
 
-        if constellation in self.open_constellations:
+        if constellation in self._open_constellations:
             subl("-n", project)
 
 

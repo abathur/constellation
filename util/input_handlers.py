@@ -36,15 +36,15 @@ class SelectConstellationList(sublime_plugin.ListInputHandler, API):
 
 
 class SelectClosedConstellationList(SelectConstellationList):
-    _generator = lambda self: self.closed_constellations
+    _generator = lambda self: self.closed_constellations()
 
 
 class SelectOpenConstellationList(SelectConstellationList):
-    _generator = lambda self: self.open_constellations
+    _generator = lambda self: self.open_constellations()
 
 
 class SelectActiveConstellationList(SelectConstellationList):
-    _generator = lambda self: self.active_constellations
+    _generator = lambda self: self.active_constellations()
 
 
 class BaseProjectList(sublime_plugin.ListInputHandler, API):

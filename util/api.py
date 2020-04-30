@@ -21,13 +21,14 @@ class API:
             if not os.path.isdir(cls.cache_dir):
                 os.mkdir(cls.cache_dir)
                 os.path.mknod(cls.open_constellation_cache)
+
         try:
             with open(cls.open_constellation_cache) as cache:
-                cls._open_constellations = (
-                    set(cache.readlines()) & constellations.keys()
+                cls._open_constellations.update(
+                    set(cache.read().splitlines()) & constellations.keys()
                 )
         except FileNotFoundError:
-            cls._open_constellations = constellations.keys()
+            pass
 
         if not cls.state.get("did_migrate_open", False):
             cls.do_migrate_open(constellations)
@@ -63,7 +64,6 @@ class API:
         self.state.set("constellations", value)
         self.save_state()
 
-    @property
     def open_constellations(self):
         """Open"""
         return list(self._open_constellations)
@@ -81,12 +81,10 @@ class API:
             )
         )
 
-    @property
     def closed_constellations(self):
         """Active, but not open"""
-        return self.active_constellations - self._open_constellations
+        return self.active_constellations() - self._open_constellations
 
-    @property
     def archived_constellations(self):
         return {
             k
@@ -94,7 +92,6 @@ class API:
             if v.get("archived")
         }
 
-    @property
     def active_constellations(self):
         return {
             k
@@ -123,12 +120,22 @@ class API:
         self.constellations = defined
         # print(c.LOG_TEMPLATE, "Removed constellation:", name)
 
+    @classmethod
+    def save_constellation_cache(cls):
+        with open(cls.open_constellation_cache, mode="w") as cache:
+            for line in (
+                cls._open_constellations & cls.state.get("constellations", {}).keys()
+            ):
+                cache.write(line + "\n")
+
     def open_constellation(self, name):
         self._open_constellations.add(name)
+        self.save_constellation_cache()
         # print(c.LOG_TEMPLATE, "Opened constellation:", name)
 
     def close_constellation(self, name):
         self._open_constellations.remove(name)
+        self.save_constellation_cache()
         # print(c.LOG_TEMPLATE, "Closed constellation:", name)
 
     def archive_constellation(self, name):
