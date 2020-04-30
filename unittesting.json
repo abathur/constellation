@@ -2,5 +2,6 @@
     "deferred": true,
     "async": false,
     "verbosity": 5,
-    "capture_console": true
+    "capture_console": true,
+    "reload_package_on_testing": false
 }

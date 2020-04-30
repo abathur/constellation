@@ -5,6 +5,21 @@ See Randy3k's example of yielding lambdas during setup?
 https://github.com/SublimeText/UnitTesting/blob/master/unittesting/helpers/temp_directory_test_case.py
 
 I wonder if pytest is compatible with deferrabletestcase
+
+Note: These tests used to have a common, annoying pattern:
+- do some action
+- wait some arbitrary amount of time
+- look for data structure changes and hope they've happened.
+
+I've now rewritten them to use a newer pattern where they yield
+a lambda that UnitTesting will check until it's true (within 4
+second timeout). This is much less dumb, but it also means many
+of the assertions are implicit, bundled up in the handling of
+the command action. If you see a "yield self.blah()" call, there's
+almost inevitably an implicit lambda assertion on the other end.
+
+I guess "passing" many of these tests now means getting to the end
+without a timeout error.
 """
 
 import sublime
@@ -23,34 +38,29 @@ class TestCore(DeferrableTestCase):
         self.state = Constellation.api.API.state
         self.open_constellations = Constellation.api.API._open_constellations
 
-    def tearDown(self):
-        try:
-            self.destroy_constellation("test_one")
-        # some tests close it on their own...
-        except KeyError:
-            pass
-
-    def create_constellation(self, name):
+    def create_constellation(self, name, cleanup=True):
+        if cleanup:
+            self.addCleanup(self.destroy_constellation, name)
         sublime.run_command("create_constellation", {"name": name})
-        return 1000  # delay to give ST3 time to work
+
+        return lambda: name in self.state.get("constellations")
 
     def test_create_constellation(self):
-        yield self.create_constellation("test_one")
-        # confirm the constellation record exists
-        self.assertIn("test_one", self.state.get("constellations"))
+        constellation = "test_create_constellation"
+        yield self.create_constellation(constellation)
 
-        # TODO: confirm it shows up in the open, destroy, and rename menus
+        # TODO: confirm it shows up in the open, destroy, and rename menus?
 
     def open_constellation(self, name):
         sublime.run_command("open_constellation", {"constellation": name})
-        return 1000  # delay to give ST3 time to work
+        return lambda: name in self.open_constellations
 
     def close_constellation(self, name):
         sublime.run_command("close_constellation", {"constellation": name})
-        return 1000  # delay to give ST3 time to work
+        return lambda: name not in self.open_constellations
 
     def test_open_and_close_constellation(self):
-        constellation = "test_one"
+        constellation = "test_open_and_close_constellation"
         onepath = self.make_project_path("one.sublime-project")
         twopath = self.make_project_path("two.sublime-project")
         # create a constellation
@@ -63,36 +73,24 @@ class TestCore(DeferrableTestCase):
         # open the constellation
         yield self.open_constellation(constellation)
 
-        # confirm the projects are open
-        open_projects = set([win.project_file_name() for win in sublime.windows()])
+        # wait for all projects to be open
         for project in self.state.get("constellations")[constellation]["projects"]:
-            yield 100
-            self.assertIn(project, open_projects)
+            yield lambda: project in set(
+                [win.project_file_name() for win in sublime.windows()]
+            )
 
-        # confirm constellation marked open
-        self.assertTrue(constellation in self.open_constellations)
-        yield 100
-
-        # TODO: confirm constellation shows up in close menu
+        # TODO: confirm constellation shows up in close menu?
 
         yield self.close_constellation(constellation)
 
-        # confirm the projects are closed
-        open_projects = set([win.project_file_name() for win in sublime.windows()])
-        for project in self.state.get("constellations")[constellation]["projects"]:
-            self.assertNotIn(project, open_projects)
-
-        # confirm const is marked closed
-        self.assertTrue(constellation not in self.open_constellations)
-
     def destroy_constellation(self, name):
         sublime.run_command("destroy_constellation", {"constellation": name})
-        return 1000  # delay to give ST3 time to work
+        return lambda: name not in self.state.get("constellations")
 
     def test_destroy_constellation(self):
         # create a constellation
-        constellation = "test_one"
-        yield self.create_constellation(constellation)
+        constellation = "test_destroy_constellation"
+        yield self.create_constellation(constellation, cleanup=False)
 
         # destroy it
         yield self.destroy_constellation(constellation)
@@ -110,32 +108,25 @@ class TestCore(DeferrableTestCase):
         sublime.run_command(
             "add_project", {"constellation": constellation, "project": proj_path}
         )
-        return 1000  # delay to give ST3 time to work
+        return (
+            lambda: proj_path
+            in self.state.get("constellations")[constellation]["projects"]
+        )
 
     def test_add_constellation_projects(self):
-        constellation = "test_one"
+        constellation = "test_add_constellation_projects"
         # create a constellation
         yield self.create_constellation(constellation)
 
-        # add a couple projects to it
+        # add a couple projects to it & confirm they're added
         onepath = self.make_project_path("one.sublime-project")
         yield self.add_constellation_project(constellation, onepath)
-
-        # confirm it is added
-        self.assertIn(
-            onepath, self.state.get("constellations")[constellation]["projects"]
-        )
 
         twopath = self.make_project_path("two.sublime-project")
         yield self.add_constellation_project(constellation, twopath)
 
-        self.assertIn(
-            twopath, self.state.get("constellations")[constellation]["projects"]
-        )
-        yield 100
-
         self.remove_project_menu_contains(
-            "test_one",
+            constellation,
             [("one.sublime-project", "wrongboy"), ("two.sublime-project", "rightboy"),],
         )
 
@@ -143,36 +134,29 @@ class TestCore(DeferrableTestCase):
         sublime.run_command(
             "remove_project", {"constellation": constellation, "project": proj_path}
         )
-        return 1000  # delay to give ST3 time to work
+        return (
+            lambda: proj_path
+            not in self.state.get("constellations")[constellation]["projects"]
+        )
 
     def test_remove_constellation_project(self):
-        constellation = "test_one"
+        constellation = "test_remove_constellation_project"
         onepath = self.make_project_path("one.sublime-project")
         # create a constellation
         yield self.create_constellation(constellation)
 
+        # sanity check; project isn't already there
         self.assertNotIn(
             onepath, self.state.get("constellations")[constellation]["projects"]
         )
-        yield 100
-        # add a couple projects to it
 
+        # add a couple projects & confirm their presence
         yield self.add_constellation_project(constellation, onepath)
 
-        self.assertIn(
-            onepath, self.state.get("constellations")[constellation]["projects"]
-        )
-        yield 100
-
+        # rm and confirm it's not in list
         yield self.remove_constellation_project(constellation, onepath)
 
-        # confirm it is removed
-        self.assertNotIn(
-            onepath, self.state.get("constellations")[constellation]["projects"]
-        )
-
-        # TODO: confirm it no longer appears in the remove menu
-        yield 100
+        # TODO: confirm it no longer appears in the remove menu?
 
     def remove_project_menu(self, constellation):
         handle = input_handlers.ConstellationProjectList()
@@ -181,7 +165,7 @@ class TestCore(DeferrableTestCase):
     def remove_project_menu_contains(self, constellation, projects):
         # make sure the remove menu has the right projects:
         self.assertEqual(
-            set(self.remove_project_menu("test_one")),
+            set(self.remove_project_menu(constellation)),
             set(
                 [
                     (

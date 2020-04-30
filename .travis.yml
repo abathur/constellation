@@ -27,7 +27,7 @@ env:
 before_install: curl -OL https://raw.githubusercontent.com/SublimeText/UnitTesting/${UNITTESTING_TAG}/sbin/travis.sh
 
 install: sh ./travis.sh bootstrap
-script: sh ./travis.sh run_tests
+script: sh ./travis.sh run_tests --coverage
 
 jobs:
   fast_finish: true
