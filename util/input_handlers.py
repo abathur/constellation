@@ -58,7 +58,7 @@ class BaseProjectList(sublime_plugin.ListInputHandler, API):
 class OpenProjectList(BaseProjectList):
     exclude = []
 
-    def __init__(self, exclude):
+    def __init__(self, exclude=None):
         self.exclude = exclude or []
         super().__init__()
 

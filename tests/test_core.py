@@ -56,23 +56,35 @@ class TestCore(DeferrableTestCase):
 
         # TODO: confirm it shows up in the open, destroy, and rename menus?
 
-        # clean up
-        self.destroy_constellation(constellation)
-
     def open_constellation(self, name):
         sublime.run_command("open_constellation", {"constellation": name})
         return lambda: name in self.open_constellations()
 
     def close_constellation(self, name):
+        assert name in self.open_constellations()
+
         sublime.run_command("close_constellation", {"constellation": name})
-        return lambda: name not in self.open_constellations()
+
+        def verify():
+            if name in self.open_constellations():
+                return False
+
+            for project in self.state.get("constellations")[name]["projects"]:
+
+                if project in set(
+                    [win.project_file_name() for win in sublime.windows()]
+                ):
+                    return False
+            return True
+
+        return verify
 
     def test_open_and_close_constellation(self):
         constellation = "test_open_and_close_constellation"
         onepath = self.make_project_path("one.sublime-project")
         twopath = self.make_project_path("two.sublime-project")
         # create a constellation
-        yield self.create_constellation(constellation)
+        yield self.create_constellation(constellation, cleanup=False)
 
         # add a couple projects to it
         yield self.add_constellation_project(constellation, onepath)
@@ -83,6 +95,7 @@ class TestCore(DeferrableTestCase):
 
         # wait for all projects to be open
         for project in self.state.get("constellations")[constellation]["projects"]:
+
             yield lambda: project in set(
                 [win.project_file_name() for win in sublime.windows()]
             )
@@ -90,21 +103,23 @@ class TestCore(DeferrableTestCase):
         # TODO: confirm constellation shows up in close menu?
 
         yield self.close_constellation(constellation)
+        yield self.destroy_constellation(constellation)
 
     def destroy_constellation(self, name):
+        assert name in self.state.get("constellations")
+        if name in self.open_constellations():
+            assert self.close_constellation(name)
         sublime.run_command("destroy_constellation", {"constellation": name})
-        return lambda: name not in self.state.get("constellations")
+        assert name not in self.state.get("constellations")
 
     def test_destroy_constellation(self):
         # create a constellation
         constellation = "test_destroy_constellation"
         yield self.create_constellation(constellation, cleanup=False)
-
         # destroy it
         yield self.destroy_constellation(constellation)
-
         # confirm it's not in the list
-        self.assertNotIn(constellation, self.state.get("constellations"))
+        yield self.assertNotIn(constellation, self.state.get("constellations"))
 
         # TODO: confirm it no longer shows up in open, close, rename, destroy menus
 
@@ -114,12 +129,17 @@ class TestCore(DeferrableTestCase):
 
     def add_constellation_project(self, constellation, proj_path):
         sublime.run_command(
-            "add_project", {"constellation": constellation, "project": proj_path}
+            "find_project", {"constellation": constellation, "project": proj_path}
         )
-        return (
-            lambda: proj_path
-            in self.state.get("constellations")[constellation]["projects"]
-        )
+
+        def verify():
+            return proj_path in self.state.get("constellations")[constellation][
+                "projects"
+            ] and proj_path in set(
+                [win.project_file_name() for win in sublime.windows()]
+            )
+
+        return verify
 
     def test_add_constellation_projects(self):
         constellation = "test_add_constellation_projects"
@@ -133,13 +153,15 @@ class TestCore(DeferrableTestCase):
         twopath = self.make_project_path("two.sublime-project")
         yield self.add_constellation_project(constellation, twopath)
 
-        self.remove_project_menu_contains(
+        yield self.remove_project_menu_contains(
             constellation,
-            [("one.sublime-project", "wrongboy"), ("two.sublime-project", "rightboy"),],
+            [
+                ("one.sublime-project", "wrongboy"),
+                ("two.sublime-project", "rightboy"),
+            ],
         )
 
-        # clean up
-        self.destroy_constellation(constellation)
+        yield lambda: constellation in self.open_constellations()
 
     def remove_constellation_project(self, constellation, proj_path):
         sublime.run_command(
@@ -149,6 +171,22 @@ class TestCore(DeferrableTestCase):
             lambda: proj_path
             not in self.state.get("constellations")[constellation]["projects"]
         )
+
+    def close_project(self, proj_path):
+        # TODO: if you remember, comment why this is a nested
+        #       function
+        def closer():
+            closed = False
+            for window in sublime.windows():
+                if window.project_file_name() == proj_path:
+                    window.run_command("close_workspace")
+                    window.run_command("close_window")
+                    closed = True
+            return closed and proj_path not in set(
+                [window.project_file_name() for window in sublime.windows()]
+            )
+
+        return closer
 
     def test_remove_constellation_project(self):
         constellation = "test_remove_constellation_project"
@@ -164,13 +202,12 @@ class TestCore(DeferrableTestCase):
         # add a couple projects & confirm their presence
         yield self.add_constellation_project(constellation, onepath)
 
+        yield self.close_project(onepath)
+
         # rm and confirm it's not in list
         yield self.remove_constellation_project(constellation, onepath)
 
         # TODO: confirm it no longer appears in the remove menu?
-
-        # clean up
-        self.destroy_constellation(constellation)
 
     def remove_project_menu(self, constellation):
         handle = input_handlers.ConstellationProjectList()

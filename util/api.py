@@ -1,6 +1,8 @@
 import sublime
 import os
+import time
 from . import constants as c
+from .subl import subl
 
 
 class API:
@@ -129,9 +131,16 @@ class API:
                 cache.write(line + "\n")
 
     def open_constellation(self, name):
+        if name in self._open_constellations:
+            return
+
         self._open_constellations.add(name)
         self.save_constellation_cache()
         # print(c.LOG_TEMPLATE, "Opened constellation:", name)
+        for project in self.projects_for(name):
+            subl("-n", project)
+            # sometimes multiple projects don't open right; this superstitious pause seems to help.
+            time.sleep(0.200)
 
     def close_constellation(self, name):
         self._open_constellations.remove(name)
@@ -158,12 +167,20 @@ class API:
     def projects_for(self, name):
         return self.constellations[name]["projects"]
 
-    def add_to(self, name, project):
+    def projects_in_constellations(
+        self,
+    ):
+        return {p for k, v in self.constellations.items() for p in v["projects"]}
+
+    def add_to(self, name, project, already_open=False):
         if name and project:
             defined = self.constellations
             defined[name]["projects"].append(project)
             self.constellations = defined
             # print(c.LOG_TEMPLATE, "Add project:", project, "to", name)
+            if not already_open and name in self._open_constellations:
+                # open it, if the constellation is
+                subl("-n", project)
 
     def remove_from(self, name, project):
         if name and project:

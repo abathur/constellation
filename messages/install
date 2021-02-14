@@ -2,6 +2,8 @@ Welcome to Constellation.
 
 To get started, open your new primary menu: [❉]
 
-This menu enables you to create, modify, and use individual constellations of projects.
+This menu enables you to create, modify, and use constellations of projects.
+
+You can close an open constellation by clicking its name in the list of open constellations.
 
 To report issues: https://github.com/abathur/constellation

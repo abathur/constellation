@@ -4,9 +4,7 @@
         "id": "constellation",
         "children":
         [
-            {
-                "command": "info",
-            },
+            { "command": "open_constellations_info" },
             { "command": "open_constellations", "args": {"index": 0 } },
             { "command": "open_constellations", "args": {"index": 1 } },
             { "command": "open_constellations", "args": {"index": 2 } },
@@ -23,61 +21,98 @@
             { "command": "open_constellations", "args": {"index": 13 } },
             { "command": "open_constellations", "args": {"index": 14 } },
             { "command": "open_constellations", "args": {"index": 15 } },
-            { "caption": "-" },
             {
-                "caption": "Open a constellation",
+                "caption": "    + open ...",
                 "command": "open_constellation"
             },
-            {
-                "caption": "Close a constellation",
-                "command": "close_constellation"
-            },
             { "caption": "-" },
+            { "command": "manage_constellations_info" },
             {
-                "caption": "Create a constellation",
-                "command": "create_constellation"
+                "caption": "Create",
+                "children": [
+                    {
+                        "caption": "... from scratch",
+                        "command": "create_constellation"
+                    },
+                    {
+                        "caption": "... from open project",
+                        "command": "create_constellation_from_open_project"
+                    },
+                    {
+                        "caption": "... from project file",
+                        "command": "create_constellation_from_project_file",
+                        "platform": "!Windows"
+                    },
+                    {
+                        "caption": "... from workspace file",
+                        "command": "create_constellation_from_workspace_file",
+                        "platform": "!Windows"
+                    },
+                    { "caption": "-", "platform": "Windows" },
+                    {
+                        "command": "windows_user_question",
+                        "platform": "Windows"
+                    },
+                    {
+                        "caption": "... from project file",
+                        "command": "create_constellation_from_project_file",
+                        "platform": "Windows"
+                    },
+                    {
+                        "caption": "... from workspace file",
+                        "command": "create_constellation_from_workspace_file",
+                        "platform": "Windows"
+                    },
+                    { "caption": "-", "platform": "Windows" },
+                ]
             },
             {
-                "caption": "Destroy a constellation",
+                "caption": "Destroy",
                 "command": "destroy_constellation"
             },
             {
-                "caption": "Rename a constellation",
+                "caption": "Rename",
                 "command": "rename_constellation"
             },
             { "caption": "-" },
+            { "command": "manage_projects_info" },
             {
-                "caption": "Add an open project",
-                "command": "add_project"
+                "caption": "Add",
+                "children": [
+                    {
+                        "caption": "... from open project",
+                        "command": "add_project"
+                    },
+                    {
+                        "caption": "... from project file",
+                        "command": "find_project",
+                        "platform": "!Windows"
+                    },
+                    {
+                        "caption": "... from workspace file",
+                        "command": "upgrade_workspace",
+                        "platform": "!Windows"
+                    },
+                    { "caption": "-", "platform": "Windows" },
+                    {
+                        "command": "windows_user_question",
+                        "platform": "Windows"
+                    },
+                    {
+                        "caption": "... from project file",
+                        "command": "find_project",
+                        "platform": "Windows"
+                    },
+                    {
+                        "caption": "... from workspace file",
+                        "command": "upgrade_workspace",
+                        "platform": "Windows"
+                    },
+                    { "caption": "-", "platform": "Windows" },
+                ]
             },
             {
-                "caption": "Add a project by file",
-                "command": "find_project",
-                "platform": "!Windows"
-            },
-            {
-                "caption": "Upgrade & add a workspace",
-                "command": "upgrade_workspace",
-                "platform": "!Windows"
-            },
-            { "caption": "-", "platform": "Windows" },
-            {
-                "command": "windows_user_question",
-                "platform": "Windows"
-            },
-            {
-                "caption": "Add a project by file",
-                "command": "find_project",
-                "platform": "Windows"
-            },
-            {
-                "caption": "Upgrade & add a workspace",
-                "command": "upgrade_workspace",
-                "platform": "Windows",
-            },
-            { "caption": "-", "platform": "Windows" },
-            {
-                "caption": "Remove a project",
+                "caption": "Remove",
                 "command": "remove_project"
             }
         ]

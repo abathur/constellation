@@ -1,7 +1,19 @@
 [
     {
-        "caption": "Constellation: Create",
+        "caption": "Constellation: Create from scratch",
         "command": "create_constellation"
+    },
+    {
+        "caption": "Constellation: Create from open project",
+        "command": "create_constellation_from_open_project"
+    },
+    {
+        "caption": "Constellation: Create from project file",
+        "command": "create_constellation_from_project_file"
+    },
+    {
+        "caption": "Constellation: Create from workspace file",
+        "command": "create_constellation_from_workspace_file"
     },
     {
         "caption": "Constellation: Destroy",
@@ -20,15 +32,15 @@
         "command": "close_constellation"
     },
     {
-        "caption": "Constellation: Add project by file",
+        "caption": "Constellation: Add from project file",
         "command": "find_project"
     },
     {
-        "caption": "Constellation: Upgrade & add workspace",
+        "caption": "Constellation: Add from workspace file",
         "command": "upgrade_workspace"
     },
     {
-        "caption": "Constellation: Add open project",
+        "caption": "Constellation: Add from open project",
         "command": "add_project"
     },
     {

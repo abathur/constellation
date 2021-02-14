@@ -10,9 +10,7 @@ import sublime_plugin
 import os
 import subprocess
 import json
-import time
 
-from .util.subl import subl
 from .util import input_handlers as collect
 from .util.api import API
 from .util import constants as c
@@ -33,7 +31,7 @@ class _BaseApplicationCommand(sublime_plugin.ApplicationCommand, API):
 # TODO: I won't pretend to completely grok when and why ST3's api uses the various arg-passing conventions it's using. May be worth a refactor when this is better understood.
 
 
-class InfoCommand(_BaseApplicationCommand):
+class OpenConstellationsInfoCommand(_BaseApplicationCommand):
     def is_enabled(self, *args):
         return False
 
@@ -57,7 +55,7 @@ class OpenConstellationsCommand(_BaseApplicationCommand):
         return index < len(self._open_constellations)
 
     def is_enabled(self, index=None, **args):
-        return False
+        return True
 
     def description(self, index=None, **args):
         const = relevant = None
@@ -71,6 +69,12 @@ class OpenConstellationsCommand(_BaseApplicationCommand):
             if index < len(relevant)
             else "Oops. You shouldn't be seeing this. Better find someone who works here."
         )
+
+    def run(self, index=None, **args):
+        if index < len(self._open_constellations):
+            relevant = self.open_constellations()
+            const = relevant[index]
+            return CloseConstellationCommand().run(const)
 
 
 class _ExistingConstellationCommand(_BaseApplicationCommand):
@@ -95,18 +99,67 @@ class _ActiveConstellationCommand(_ExistingConstellationCommand):
     _list_class = collect.SelectActiveConstellationList
 
 
+class ManageConstellationsInfoCommand(_BaseApplicationCommand):
+    def is_enabled(self, *args):
+        return False
+
+    def description(self, *args):
+        return "Constellations"
+
+
 class CreateConstellationCommand(_BaseApplicationCommand):
     def input(self, args):
         return collect.InputConstellationName()
 
     def run(self, name):
         self.add_constellation(name)
+        self.open_constellation(name)
+
+
+class CreateConstellationFromOpenProjectCommand(_BaseApplicationCommand):
+    def input(self, args):
+        return collect.OpenProjectList(exclude=self.projects_in_constellations())
+
+    def run(self, project):
+        name = os.path.splitext(os.path.basename(project))[0]
+        self.add_constellation(name)
+        self.open_constellation(name)
+        # add project to eponymous constellation
+        self.add_to(name, project, already_open=True)
+
+
+class CreateConstellationFromProjectFileCommand(_BaseApplicationCommand):
+    def input(self, args):
+        return collect.SearchProjectList()
+
+    def run(self, project):
+        name = os.path.splitext(os.path.basename(project))[0]
+        self.add_constellation(name)
+        self.open_constellation(name)
+        # add project to eponymous constellation
+        self.add_to(name, project)
+
+
+class CreateConstellationFromWorkspaceFileCommand(_BaseApplicationCommand):
+    def input(self, args):
+        return collect.UpgradeWorkspaceList()
+
+    def run(self, project):
+        name = os.path.splitext(os.path.basename(project))[0]
+        self.add_constellation(name)
+        self.open_constellation(name)
+        # add project to eponymous constellation
+        self.add_to(name, project)
 
 
 class DestroyConstellationCommand(_ActiveConstellationCommand):
     def run(self, constellation):
         if constellation not in self.constellations:
             return
+
+        if constellation in self._open_constellations:
+            self.close_constellation(constellation)
+
         self.remove_constellation(constellation)
 
 
@@ -124,11 +177,6 @@ class OpenConstellationCommand(_ClosedConstellationCommand):
     def run(self, constellation):
         self.open_constellation(constellation)
 
-        for project in self.projects_for(constellation):
-            subl("-n", project)
-            # sometimes multiple projects don't open right; this superstitious pause seems to help.
-            time.sleep(0.200)
-
 
 class CloseConstellationCommand(_OpenConstellationCommand):
     def run(self, constellation):
@@ -141,22 +189,33 @@ class CloseConstellationCommand(_OpenConstellationCommand):
                     window.run_command("close_workspace")
                     if window.id() != sublime.active_window().id():
                         window.run_command("close_window")
-
         self.close_constellation(constellation)
 
 
+class ManageProjectsInfoCommand(_BaseApplicationCommand):
+    def is_enabled(self, *args):
+        return False
+
+    def description(self, *args):
+        return "Constellation Projects"
+
+
 class AddProjectCommand(_ActiveConstellationCommand):
+    already_open = True
+
     def input(self, args):
         return collect.ProjectList()
 
     def run(self, constellation, project):
-        self.add_to(constellation, project)
+        self.add_to(constellation, project, already_open=self.already_open)
 
 
 # We have opinions, and one of those is that workspaces are annoying to work with directly. Because of this opinion, the only way we're going to support working with them is by explicitly upgrading it to a project (but then replacing the project file with a link back to whatever project the workspace was in) so you get the benefits of having a workspace, but we don't have to have arcane methods of working with them.
 
 
 class UpgradeWorkspaceCommand(AddProjectCommand):
+    already_open = False
+
     def is_enabled(self, *args):
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
@@ -216,11 +275,10 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
 
         # at this point, we need to have taken the workspace file, added a link adjacent to the project file, and replaced the project key in the workspace file with the pointer to the adjacent file
 
-        if constellation in self._open_constellations:
-            subl("-n", project)
-
 
 class FindProjectCommand(AddProjectCommand):
+    already_open = False
+
     def is_enabled(self, *args):
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
@@ -234,12 +292,6 @@ class FindProjectCommand(AddProjectCommand):
 
     def input(self, args):
         return collect.FoundProjectList()
-
-    def run(self, constellation, project):
-        super().run(constellation, project)
-
-        if constellation in self._open_constellations:
-            subl("-n", project)
 
 
 class RemoveProjectCommand(_ActiveConstellationCommand):
