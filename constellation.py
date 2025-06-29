@@ -9,6 +9,7 @@ import sublime_plugin
 
 import os
 import subprocess
+import time
 import json
 
 from .util import input_handlers as collect
@@ -17,7 +18,9 @@ from .util import constants as c
 
 
 def plugin_loaded():
+    # print("plugin_loaded:pre-load_state")
     API.load_state()
+    # print("plugin_loaded:post-load_state")
 
 
 def plugin_unloaded():
@@ -180,16 +183,116 @@ class OpenConstellationCommand(_ClosedConstellationCommand):
 
 class CloseConstellationCommand(_OpenConstellationCommand):
     def run(self, constellation):
+        # print(
+        #     "CloseConstellation.run.1",
+        #     self._open_constellations,
+        #     [(win.id(), win.project_file_name()) for win in sublime.windows()],
+        #     sublime.active_window().id(),
+        # )
         if constellation not in self._open_constellations:
             return
 
-        for project in self.projects_for(constellation):
-            for window in sublime.windows():
-                if window.project_file_name() == project:
-                    window.run_command("close_workspace")
-                    if window.id() != sublime.active_window().id():
+        any_pending = True
+        while any_pending:
+            # print("1:start", any_pending)
+            any_pending = False
+            for project in self.projects_for(constellation):
+                # print("2:start", any_pending, project)
+                for window in sublime.windows():
+                    # print(
+                    #     "3:start consider closing workspace",
+                    #     project,
+                    #     window.project_file_name(),
+                    #     "this window=",
+                    #     window.id(),
+                    #     "active window=",
+                    #     sublime.active_window().id(),
+                    #     window.is_valid(),
+                    # )
+                    if window.project_file_name() == project:
+                        # print("3.1: CLOSING WORKSPACE")
+                        # time.sleep(0.2)
+                        # window.run_command("close_workspace")
+                        window.run_command("close_project")
+                        any_pending = True
+                        # waited = 0.0
+                        # while window.project_file_name() == project and waited <= 30.0:
+                        #     # any_pending = True
+                        #     print(
+                        #         "Time spent trying to get the workspace to close",
+                        #         waited,
+                        #     )
+                        #     time.sleep(0.2)
+                        #     waited += 0.2
+                        #     # window.run_command("close_workspace")
+                        #     window.run_command(
+                        #         "close_project"
+                        #     )  # DOING: wait, THIS works?
+
+                        if len(sublime.windows()) == 1:
+                            # print("3.1: OPENING EMPTY WINDOW")
+
+                            window.run_command("new_window")
+                            # time.sleep(0.2)
+
+                        # print("3.1: CLOSING WINDOW")
                         window.run_command("close_window")
+                        # time.sleep(0.2)
+
+                        """
+                        TODO: document why you're carving this out?
+                        (guess: to avoid closing last window, esp. on non-macOS)
+                        let's try only respecting this heuristic when there's 1 window?
+
+                        DOING:
+                        under the assumption that this is indeed why I'm doing it
+                        I wonder if it's ~cleaner to just open a new window?
+
+                        if len(sublime.windows()) == 1:
+                            window.run_command("new_window")
+
+                        if (
+                            window.id() != sublime.active_window().id()
+                            and len(sublime.windows()) != 1
+                        ):
+                            window.run_command("close_window")
+                        else:
+                            window.run_command("close_window")
+                        """
+            #         print("3:end", any_pending, window.id(), window.project_file_name())
+            #     print("2:end", any_pending, project)
+            # print("1:end", any_pending)
+
+        """
+        DOING:
+        something racy/flaky causing tests to fail
+        condition appears to be constellation marked closed but projects in it still open, at which point the verification closure for close_constellation can't resolve true anymore
+
+        I guess the ~right thing to do here is to ensure we only try to close it once all projects cleanly close?
+
+        (I guess this could hang if there's a reason it can't close...)
+
+        Thoughts on the right way to implement
+            - set up an event listener to handle on_window_command and on_post_window_command, hold state on each of these commands as they start, drop state as they finish, and let this function either hang to await that completion, or queue a setTimeout that will check this and either close the constellation once done or requeue?
+            - hang this function to actively check open projects/windows at close time until all are gone
+                let's do the dumbest thing first
+
+        I guess one more thesis here is that close_window closes the active window regardless of which window object you run it on, in which case the race or nondeterminism might be around which window counts as active? maybe go compare the active IDs across working/failing flows?
+            not saying I think this is true
+        """
+        # print(
+        #     "CloseConstellation.run.2",
+        #     self._open_constellations,
+        #     [(win.id(), win.project_file_name()) for win in sublime.windows()],
+        #     sublime.active_window().id(),
+        # )
         self.close_constellation(constellation)
+        # print(
+        #     "CloseConstellation.run.3",
+        #     self._open_constellations,
+        #     [(win.id(), win.project_file_name()) for win in sublime.windows()],
+        #     sublime.active_window().id(),
+        # )
 
 
 class ManageProjectsInfoCommand(_BaseApplicationCommand):
@@ -200,13 +303,60 @@ class ManageProjectsInfoCommand(_BaseApplicationCommand):
         return "Constellation Projects"
 
 
+def commonprefix(l):
+    # something borrowed: https://stackoverflow.com/questions/21498939/how-to-circumvent-the-fallacy-of-pythons-os-path-commonprefix
+    # this unlike the os.path.commonprefix version
+    # always returns path prefixes as it compares
+    # path component wise
+    if getattr(os.path, "commonpath", None):
+        return os.path.commonpath(l)
+    cp = []
+    ls = [p.split("/") for p in l]
+    ml = min(len(p) for p in ls)
+
+    for i in range(ml):
+
+        s = set(p[i] for p in ls)
+        if len(s) != 1:
+            break
+
+        cp.append(s.pop())
+
+    return "/".join(cp)
+
+
 class AddProjectCommand(_ActiveConstellationCommand):
     already_open = True
+
+    # def guess_search_path(self):
+    #     """
+    #     Use common root of open projects to guess
+    #     where user stores theirs.
+
+    #     Uses lowercase comparison since caseless filesystems
+    #     may have a mix of upper/lower paths loaded in ST
+    #     without the user noticing, causing it to back out
+    #     further than necessary.
+
+    #     When there aren't open projects it'll fall back to the root which can be quite slow.
+
+    #     Caution:
+    #     I'm skeptical this is the "right" approach, but
+    #     it's a testing expediency for now. It would probably
+    #     be better to just add a command for setting the
+    #     project search root and disable all other commands
+    #     until one is set?
+    #     """
+    #     project_files = [
+    #         y.lower() for y in [x.project_file_name() for x in sublime.windows()] if y
+    #     ]
+    #     return commonprefix(project_files) if project_files else os.path.expanduser("~")
 
     def input(self, args):
         return collect.ProjectList()
 
     def run(self, constellation, project):
+        # print(self.__class__.__name__, "run", constellation, project)
         self.add_to(constellation, project, already_open=self.already_open)
 
 
@@ -220,7 +370,7 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
             return False
-        search_root = self.search_path
+        search_root = self.search_path if self.search_path else os.path.expanduser("~")
         return (
             True
             if search_root and len(search_root) and os.path.exists(search_root)
@@ -283,7 +433,18 @@ class FindProjectCommand(AddProjectCommand):
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
             return False
-        search_root = self.search_path
+
+        search_root = self.search_path if self.search_path else os.path.expanduser("~")
+
+        # print(
+        #     self.__class__.__name__,
+        #     "is_enabled",
+        #     args,
+        #     "search_path",
+        #     search_root,
+        #     len(search_root),
+        #     os.path.exists(search_root),
+        # )
         return (
             True
             if search_root and len(search_root) and os.path.exists(search_root)
@@ -291,6 +452,7 @@ class FindProjectCommand(AddProjectCommand):
         )
 
     def input(self, args):
+        print(self.__class__.__name__, "input", args)
         return collect.FoundProjectList()
 
 

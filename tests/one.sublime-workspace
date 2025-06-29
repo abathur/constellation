@@ -47,6 +47,14 @@
 				"line_ending": "Unix",
 				"name": "not a real project"
 			}
+		},
+		{
+			"file": "one.sublime-project",
+			"settings":
+			{
+				"buffer_size": 4,
+				"line_ending": "Unix"
+			}
 		}
 	],
 	"build_system": "",
@@ -139,13 +147,44 @@
 							"auto_name": "not a real project",
 							"git_gutter_is_enabled": false,
 							"markdonw_live_preview_last_run": 1535230692.73,
-							"syntax": "Packages/Text/Plain text.tmLanguage"
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"syntax_mgr_loaded": true
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "one.sublime-project",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"syntax": "Packages/PackageDev/Package/Sublime Text Project/Sublime Text Project.sublime-syntax",
+							"syntax_mgr_loaded": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
 					"type": "text"
 				}
 			]
