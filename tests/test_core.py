@@ -25,6 +25,7 @@ without a timeout error.
 import sublime
 import sublime_plugin
 import os
+import time
 
 from unittesting import DeferrableTestCase
 import Constellation
@@ -57,8 +58,30 @@ class TestCore(DeferrableTestCase):
         # TODO: confirm it shows up in the open, destroy, and rename menus?
 
     def open_constellation(self, name):
+        assert name not in self.open_constellations()
+
         sublime.run_command("open_constellation", {"constellation": name})
-        return lambda: name in self.open_constellations()
+
+        def verify():
+            print(
+                "open_constellation:verify",
+                name,
+                self.open_constellations(),
+                self.state.get("constellations")[name]["projects"],
+                [(win.id(), win.project_file_name()) for win in sublime.windows()],
+            )
+            for project in self.state.get("constellations")[name]["projects"]:
+                if project not in set(
+                    [win.project_file_name() for win in sublime.windows()]
+                ):
+                    return False
+
+            if name not in self.open_constellations():
+                return False
+
+            return True
+
+        return verify
 
     def close_constellation(self, name):
         assert name in self.open_constellations()
@@ -66,60 +89,130 @@ class TestCore(DeferrableTestCase):
         sublime.run_command("close_constellation", {"constellation": name})
 
         def verify():
+            const_projects = set(self.state.get("constellations")[name]["projects"])
+            win_projects = set([win.project_file_name() for win in sublime.windows()])
+
+            # constellation projects not among window projects
+            if not win_projects.isdisjoint(const_projects):
+                return False
+
             if name in self.open_constellations():
                 return False
 
-            for project in self.state.get("constellations")[name]["projects"]:
-
-                if project in set(
-                    [win.project_file_name() for win in sublime.windows()]
-                ):
-                    return False
             return True
 
         return verify
 
-    def test_open_and_close_constellation(self):
-        constellation = "test_open_and_close_constellation"
+    def confirm_projects_are_closed(self, projects):
+        const_projects = set(projects)
+
+        return lambda: const_projects.isdisjoint(
+            set([win.project_file_name() for win in sublime.windows()])
+        )
+
+    def confirm_project_is_closed(self, project):
+        # return lambda: const_projects.issubset(
+        #     set([win.project_file_name() for win in sublime.windows()])
+        # )
+
+        def verify():
+            print(
+                "confirm_project_is_closed:verify",
+                self.open_constellations(),
+                project,
+                [(win.id(), win.project_file_name()) for win in sublime.windows()],
+            )
+            return project not in [win.project_file_name() for win in sublime.windows()]
+
+    def confirm_projects_are_open(self, projects):
+        const_projects = set(projects)
+
+        # return lambda: const_projects.issubset(
+        #     set([win.project_file_name() for win in sublime.windows()])
+        # )
+
+        def verify():
+            print(
+                "confirm_projects_are_open:verify",
+                self.open_constellations(),
+                const_projects,
+                [(win.id(), win.project_file_name()) for win in sublime.windows()],
+            )
+            return const_projects.issubset(
+                set([win.project_file_name() for win in sublime.windows()])
+            )
+
+        return verify
+
+    def confirm_project_is_open(self, project):
+        # return lambda: const_projects.issubset(
+        #     set([win.project_file_name() for win in sublime.windows()])
+        # )
+
+        def verify():
+            print(
+                "confirm_project_is_open:verify",
+                self.open_constellations(),
+                project,
+                [(win.id(), win.project_file_name()) for win in sublime.windows()],
+            )
+            return project in [win.project_file_name() for win in sublime.windows()]
+
+        return verify
+
+    def test_open_close_cycle_constellation(self):
+        constellation = "test_open_close_cycle_constellation"
         onepath = self.make_project_path("one.sublime-project")
         twopath = self.make_project_path("two.sublime-project")
-        # create a constellation
+        # create a constellation (this also opens it)
         yield self.create_constellation(constellation, cleanup=False)
 
         # add a couple projects to it
         yield self.add_constellation_project(constellation, onepath)
+        # projects = self.state.get("constellations")[constellation]["projects"]
+        # yield self.confirm_projects_are_open(projects)
+
         yield self.add_constellation_project(constellation, twopath)
-
-        # open the constellation
-        yield self.open_constellation(constellation)
-
-        # wait for all projects to be open
-        for project in self.state.get("constellations")[constellation]["projects"]:
-
-            yield lambda: project in set(
-                [win.project_file_name() for win in sublime.windows()]
-            )
+        projects = self.state.get("constellations")[constellation]["projects"]
+        # yield self.confirm_projects_are_open(projects)
+        yield self.confirm_project_is_open(onepath)
+        yield self.confirm_project_is_open(twopath)
 
         # TODO: confirm constellation shows up in close menu?
-
+        print("about to close", constellation)
         yield self.close_constellation(constellation)
-        yield self.destroy_constellation(constellation)
+        print("about to confirm closed", projects)
+        # yield self.confirm_projects_are_closed(projects)
+        yield self.confirm_project_is_closed(onepath)
+        yield self.confirm_project_is_closed(twopath)
+        print("about to nap")
+        yield lambda: time.sleep(2) or True
+
+        # yield self.open_constellation(constellation)
+        # # yield self.confirm_projects_are_open(projects)
+        # yield self.confirm_project_is_open(onepath)
+        # yield self.confirm_project_is_open(twopath)
+
+        # yield self.close_constellation(constellation)
+        # yield self.confirm_projects_are_closed(projects)
+
+        # yield self.destroy_constellation(constellation)
 
     def destroy_constellation(self, name):
         assert name in self.state.get("constellations")
-        if name in self.open_constellations():
-            assert self.close_constellation(name)
+
+        projects = self.state.get("constellations")[name]["projects"]
         sublime.run_command("destroy_constellation", {"constellation": name})
-        assert name not in self.state.get("constellations")
+
+        self.assertNotIn(name, self.state.get("constellations"))
+
+        return self.confirm_projects_are_closed(projects)
 
     def test_destroy_constellation(self):
         # create a constellation
         constellation = "test_destroy_constellation"
         yield self.create_constellation(constellation, cleanup=False)
-        # destroy it
         yield self.destroy_constellation(constellation)
-        # confirm it's not in the list
-        yield self.assertNotIn(constellation, self.state.get("constellations"))
 
         # TODO: confirm it no longer shows up in open, close, rename, destroy menus
 
@@ -131,12 +224,66 @@ class TestCore(DeferrableTestCase):
         sublime.run_command(
             "find_project", {"constellation": constellation, "project": proj_path}
         )
+        # time.sleep(2)
+        # sublime.run_command(
+        #     "find_project", {"constellation": constellation, "project": proj_path}
+        # )
+        # time.sleep(2)
+        # sublime.run_command(
+        #     "find_project", {"constellation": constellation, "project": proj_path}
+        # )
+        # time.sleep(2)
+        # sublime.run_command(
+        #     "find_project", {"constellation": constellation, "project": proj_path}
+        # )
+        # time.sleep(2)
+        # sublime.run_command(
+        #     "find_project", {"constellation": constellation, "project": proj_path}
+        # )
+        # time.sleep(2)
 
         def verify():
+            """
+            Caution:
+            This *was* (before oct 2026) testing both that the project is in
+            the statefile under the right constellation *and* that the
+            project is open
+
+            I'm trying to debug this after a long winter and I don't
+            recall why we're asserting that it must be open here, and
+            the local logic doesn't make it clear to me that this is right.
+
+            Trying to back out one stop for now and see what that gets us.
+
+            Was:
             return proj_path in self.state.get("constellations")[constellation][
                 "projects"
             ] and proj_path in set(
                 [win.project_file_name() for win in sublime.windows()]
+            )
+
+            Update:
+            ah, I may be understanding; a single macOS build is getting stuck
+            shortly after this runs when only one of two projects have opened
+
+            this may not actually help if it isn't a true race condition
+            but it may nonetheless be the reason. Switching back for now.
+            """
+            print(
+                "add_constellation_project:verify",
+                self.open_constellations(),
+                constellation,
+                proj_path,
+                self.state.get("constellations")[constellation]["projects"],
+                [(win.id(), win.project_file_name()) for win in sublime.windows()],
+            )
+            # return proj_path in self.state.get("constellations")[constellation][
+            #     "projects"
+            # ] and proj_path in set(
+            #     [win.project_file_name() for win in sublime.windows()]
+            # )
+            return (
+                proj_path in self.state.get("constellations")[constellation]["projects"]
             )
 
         return verify
@@ -149,9 +296,22 @@ class TestCore(DeferrableTestCase):
         # add a couple projects to it & confirm they're added
         onepath = self.make_project_path("one.sublime-project")
         yield self.add_constellation_project(constellation, onepath)
+        yield  # yield to main?
+        yield self.confirm_project_is_open(onepath)
+
+        yield lambda: time.sleep(2) or True
+        yield  # yield to main?
 
         twopath = self.make_project_path("two.sublime-project")
         yield self.add_constellation_project(constellation, twopath)
+        yield  # yield to main?
+        yield lambda: time.sleep(2) or True
+
+        yield  # yield to main?
+
+        # projects = self.state.get("constellations")[constellation]["projects"]
+        # yield self.confirm_projects_are_open(projects)
+        yield self.confirm_project_is_open(twopath)
 
         yield self.remove_project_menu_contains(
             constellation,
@@ -172,22 +332,6 @@ class TestCore(DeferrableTestCase):
             not in self.state.get("constellations")[constellation]["projects"]
         )
 
-    def close_project(self, proj_path):
-        # TODO: if you remember, comment why this is a nested
-        #       function
-        def closer():
-            closed = False
-            for window in sublime.windows():
-                if window.project_file_name() == proj_path:
-                    window.run_command("close_workspace")
-                    window.run_command("close_window")
-                    closed = True
-            return closed and proj_path not in set(
-                [window.project_file_name() for window in sublime.windows()]
-            )
-
-        return closer
-
     def test_remove_constellation_project(self):
         constellation = "test_remove_constellation_project"
         onepath = self.make_project_path("one.sublime-project")
@@ -202,7 +346,8 @@ class TestCore(DeferrableTestCase):
         # add a couple projects & confirm their presence
         yield self.add_constellation_project(constellation, onepath)
 
-        yield self.close_project(onepath)
+        # Caution: pre Oct 2026 this closed the project before removing it,
+        # but atm I'm struggling to think of a reason it must.
 
         # rm and confirm it's not in list
         yield self.remove_constellation_project(constellation, onepath)

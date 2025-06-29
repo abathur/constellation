@@ -1,0 +1,47 @@
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        st-version: [3, 4]
+        # os: ["ubuntu-latest", "macOS-latest", "windows-latest"]
+        # os: ["ubuntu-latest"]
+        os: ["ubuntu-latest", "macOS-latest"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SublimeText/UnitTesting/actions/setup@v1
+        with:
+          package-name: Constellation
+          sublime-text-version: ${{ matrix.st-version }}
+      # superstitious sleep to avoid "output frozen" errors
+      - run: sleep 2
+      - uses: SublimeText/UnitTesting/actions/run-tests@v1
+        with:
+          coverage: true
+          package-name: Constellation
+      # coveerage can fail to init for reasons I don't grok yet
+      - run: |
+          if [ -f "coverage.xml" ]; then
+            pip install pycobertura
+            pycobertura show --format markdown coverage.xml >> $GITHUB_STEP_SUMMARY
+          fi
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # - name: don't ship unparseable json :]
+      #   run: |
+      #     for json in *.json; do
+      #       echo "is $json parseable?"
+      #       python -m json.tool "$json"
+      #     done
+      # - run: find / -name "one.sublime-project"
+      - uses: psf/black@stable
+        with:
+          options: "--check --verbose --target-version py33 --target-version py38"

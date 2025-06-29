@@ -135,16 +135,37 @@ class API:
 
         self._open_constellations.add(name)
         self.save_constellation_cache()
+
+        use_internal_command = int(sublime.version()) >= 4000
+
         # print(c.LOG_TEMPLATE, "Opened constellation:", name)
-        for project in self.projects_for(name):
-            subl("-n", project)
-            # sometimes multiple projects don't open right; this superstitious pause seems to help.
-            time.sleep(0.200)
+        for project in set(self.projects_for(name)):
+            if use_internal_command:
+                print("using open_project_or_workspace to open", project)
+                sublime.active_window().run_command(
+                    "open_project_or_workspace",
+                    {"file": project, "new_window": True},
+                )
+            else:
+                subl("-n", project)
+                # sometimes multiple projects don't open right; this superstitious pause seems to help.
+                time.sleep(0.200)
+
+        """
+        CAUTION:
+        While trying to debug projects not showing up as open,
+        I've wondered if this should just sleep until all projects
+        are open before returning.
+
+        Something about this doesn't work. My best guess is that,
+        because we shell out to `subl` to open the project, we are
+        trying to wait for something that won't run until we return.
+        """
 
     def close_constellation(self, name):
         self._open_constellations.remove(name)
         self.save_constellation_cache()
-        # print(c.LOG_TEMPLATE, "Closed constellation:", name)
+        print(c.LOG_TEMPLATE, "Closed constellation:", name)
 
     def archive_constellation(self, name):
         defined = self.constellations
@@ -171,15 +192,39 @@ class API:
     ):
         return {p for k, v in self.constellations.items() for p in v["projects"]}
 
-    def add_to(self, name, project, already_open=False):
+    def add_to(self, name, project, should_already_be_open=False):
         if name and project:
+            # TODO: undo this assignment dance to see if there's
+            # a good reason for it
             defined = self.constellations
+            if project in defined[name]["projects"]:
+                return  # already added it
+
             defined[name]["projects"].append(project)
             self.constellations = defined
-            # print(c.LOG_TEMPLATE, "Add project:", project, "to", name)
-            if not already_open and name in self._open_constellations:
-                # open it, if the constellation is
-                subl("-n", project)
+            print(c.LOG_TEMPLATE, "Add project:", project, "to", name)
+            if not should_already_be_open and name in self._open_constellations:
+                """
+                already_open is about the type of command, and the
+                UI helps us keep users from misusing it. API users
+                (like our own tests) can misuse this, so we'll check
+                """
+                if project not in [
+                    win.project_file_name() for win in sublime.windows()
+                ]:
+                    if int(sublime.version()) >= 4000:
+                        print("using open_project_or_workspace to open", project)
+                        sublime.active_window().run_command(
+                            "open_project_or_workspace",
+                            {"file": project, "new_window": True},
+                        )
+                    else:
+                        time.sleep(2)
+                        # open it, if the constellation is
+                        print("actually invoking subl to open", project)
+                        subl("-n", project)
+                        # superstitious pause (confirmed in CI: Oct 4 2026)
+                        time.sleep(2)
 
     def remove_from(self, name, project):
         if name and project:
