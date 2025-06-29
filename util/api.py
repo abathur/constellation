@@ -11,6 +11,7 @@ class API:
 
     @classmethod
     def load_state(cls, settings_file=None):
+        print("api.load_state:start")
         cls.state = sublime.load_settings(settings_file or c.PLUGIN_SETTINGS_FILE) or {}
 
         constellations = cls.state.get("constellations", {})
@@ -25,6 +26,7 @@ class API:
 
         try:
             with open(cls.open_constellation_cache) as cache:
+                print("load_state IS OPENING", cls.open_constellation_cache, "FOR READ")
                 cls._open_constellations.update(
                     set(cache.read().splitlines()) & constellations.keys()
                 )
@@ -33,6 +35,8 @@ class API:
 
         if not cls.state.get("did_migrate_open", False):
             cls.do_migrate_open(constellations)
+
+        print("api.load_state:end")
 
     @classmethod
     def do_migrate_open(cls, constellations):
@@ -47,14 +51,19 @@ class API:
 
     @classmethod
     def save_state(cls, settings_file=None):
+        print("api.save_state:start")
         sublime.save_settings(settings_file or c.PLUGIN_SETTINGS_FILE)
+        print("save_state IS OPENING", cls.open_constellation_cache, "FOR WRITE")
         with open(cls.open_constellation_cache, mode="w") as cache:
+            print("save_state OPENED", cls.open_constellation_cache, "FOR WRITE")
             cache.write(
                 "\n".join(
                     cls._open_constellations
                     & cls.state.get("constellations", {}).keys()
                 )
             )
+        print("save_state RELEASED", cls.open_constellation_cache, "FOR WRITE")
+        print("api.save_state:end")
 
     @property
     def constellations(self):
@@ -119,15 +128,30 @@ class API:
         defined = self.constellations
         del defined[name]
         self.constellations = defined
-        # print(c.LOG_TEMPLATE, "Removed constellation:", name)
+        print(c.LOG_TEMPLATE, "Removed constellation:", name)
 
     @classmethod
     def save_constellation_cache(cls):
+        print(
+            "save_constellation_cache IS OPENING",
+            cls.open_constellation_cache,
+            "FOR WRITE",
+        )
         with open(cls.open_constellation_cache, mode="w") as cache:
+            print(
+                "save_constellation_cache OPENED",
+                cls.open_constellation_cache,
+                "FOR WRITE",
+            )
             for line in (
                 cls._open_constellations & cls.state.get("constellations", {}).keys()
             ):
                 cache.write(line + "\n")
+        print(
+            "save_constellation_cache RELEASED",
+            cls.open_constellation_cache,
+            "FOR WRITE",
+        )
 
     def open_constellation(self, name):
         if name in self._open_constellations:
@@ -135,16 +159,47 @@ class API:
 
         self._open_constellations.add(name)
         self.save_constellation_cache()
+
+        use_internal_command = int(sublime.version()) >= 4000
+
         # print(c.LOG_TEMPLATE, "Opened constellation:", name)
-        for project in self.projects_for(name):
-            subl("-n", project)
-            # sometimes multiple projects don't open right; this superstitious pause seems to help.
-            time.sleep(0.200)
+        for project in set(self.projects_for(name)):
+            if use_internal_command:
+                print("using open_project_or_workspace to open", project)
+
+                def idk(win=sublime.active_window(), proj=project):
+                    win.run_command(
+                        "open_project_or_workspace",
+                        {"file": proj, "new_window": True},
+                    )
+
+                sublime.set_timeout_async(idk)
+                # sublime.set_timeout_async(
+                #     lambda: sublime.active_window().run_command(
+                #         "open_project_or_workspace",
+                #         {"file": project, "new_window": True},
+                #     )
+                # )
+            else:
+                subl("-n", project)
+                # sometimes multiple projects don't open right; this superstitious pause seems to help.
+                time.sleep(0.200)
+
+        """
+        CAUTION:
+        While trying to debug projects not showing up as open,
+        I've wondered if this should just sleep until all projects
+        are open before returning.
+
+        Something about this doesn't work. My best guess is that,
+        because we shell out to `subl` to open the project, we are
+        trying to wait for something that won't run until we return.
+        """
 
     def close_constellation(self, name):
         self._open_constellations.remove(name)
         self.save_constellation_cache()
-        # print(c.LOG_TEMPLATE, "Closed constellation:", name)
+        print(c.LOG_TEMPLATE, "Closed constellation:", name)
 
     def archive_constellation(self, name):
         defined = self.constellations
@@ -171,19 +226,47 @@ class API:
     ):
         return {p for k, v in self.constellations.items() for p in v["projects"]}
 
-    def add_to(self, name, project, already_open=False):
+    def add_to(self, name, project, should_already_be_open=False):
         if name and project:
+            # TODO: undo this assignment dance to see if there's
+            # a good reason for it
+            # Edit: ah, I bet it's to trigger the save behaior associated with the constellations setter
+            # I wonder if write contention is the problem here?
             defined = self.constellations
+            if project in defined[name]["projects"]:
+                return  # already added it
+
             defined[name]["projects"].append(project)
             self.constellations = defined
-            # print(c.LOG_TEMPLATE, "Add project:", project, "to", name)
-            if not already_open and name in self._open_constellations:
-                # open it, if the constellation is
-                subl("-n", project)
+            print(c.LOG_TEMPLATE, "Add project:", project, "to", name)
+            if not should_already_be_open and name in self._open_constellations:
+                """
+                already_open is about the type of command, and the
+                UI helps us keep users from misusing it. API users
+                (like our own tests) can misuse this, so we'll check
+                """
+                if project not in [
+                    win.project_file_name() for win in sublime.windows()
+                ]:
+                    if int(sublime.version()) >= 4000:
+                        print("using open_project_or_workspace to open", project)
+                        sublime.set_timeout_async(
+                            lambda: sublime.active_window().run_command(
+                                "open_project_or_workspace",
+                                {"file": project, "new_window": True},
+                            )
+                        )
+                    else:
+                        time.sleep(2)
+                        # open it, if the constellation is
+                        print("actually invoking subl to open", project)
+                        subl("-n", project)
+                        # superstitious pause (confirmed in CI: Oct 4 2026)
+                        time.sleep(2)
 
     def remove_from(self, name, project):
         if name and project:
             defined = self.constellations
             defined[name]["projects"].remove(project)
             self.constellations = defined
-            # print(c.LOG_TEMPLATE, "Remove project:", project, "from", name)
+            print(c.LOG_TEMPLATE, "Remove project:", project, "from", name)
