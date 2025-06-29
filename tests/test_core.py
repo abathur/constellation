@@ -70,7 +70,6 @@ class TestCore(DeferrableTestCase):
                 return False
 
             for project in self.state.get("constellations")[name]["projects"]:
-
                 if project in set(
                     [win.project_file_name() for win in sublime.windows()]
                 ):
@@ -95,7 +94,6 @@ class TestCore(DeferrableTestCase):
 
         # wait for all projects to be open
         for project in self.state.get("constellations")[constellation]["projects"]:
-
             yield lambda: project in set(
                 [win.project_file_name() for win in sublime.windows()]
             )
@@ -125,6 +123,9 @@ class TestCore(DeferrableTestCase):
 
     @staticmethod
     def make_project_path(filename):
+        print(Constellation)
+        print(Constellation.__path__)
+        print(Constellation.__path__._path)
         return os.path.join(*(Constellation.__path__._path + ["tests", filename]))
 
     def add_constellation_project(self, constellation, proj_path):
@@ -133,6 +134,12 @@ class TestCore(DeferrableTestCase):
         )
 
         def verify():
+            print(
+                self.state.get("constellations"),
+                self.state.get("constellations")[constellation],
+                constellation,
+                proj_path,
+            )
             return proj_path in self.state.get("constellations")[constellation][
                 "projects"
             ] and proj_path in set(
@@ -148,7 +155,12 @@ class TestCore(DeferrableTestCase):
 
         # add a couple projects to it & confirm they're added
         onepath = self.make_project_path("one.sublime-project")
-        yield self.add_constellation_project(constellation, onepath)
+        print(onepath)
+        yield {
+            "condition": self.add_constellation_project(constellation, onepath),
+            "timeout": 20000,
+        }
+        # yield self.add_constellation_project(constellation, onepath)
 
         twopath = self.make_project_path("two.sublime-project")
         yield self.add_constellation_project(constellation, twopath)

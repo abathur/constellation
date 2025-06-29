@@ -280,6 +280,7 @@ class FindProjectCommand(AddProjectCommand):
     already_open = False
 
     def is_enabled(self, *args):
+        print(self.__class__.__name__, "is_enabled", args, self.search_path)
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
             return False
@@ -291,6 +292,7 @@ class FindProjectCommand(AddProjectCommand):
         )
 
     def input(self, args):
+        print(self.__class__.__name__, "input", args)
         return collect.FoundProjectList()
 
 
