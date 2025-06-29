@@ -11,28 +11,38 @@ class API:
 
     @classmethod
     def load_state(cls, settings_file=None):
+        print("load_state:0")
         cls.state = sublime.load_settings(settings_file or c.PLUGIN_SETTINGS_FILE) or {}
+        print("load_state:1")
 
         constellations = cls.state.get("constellations", {})
+        print("load_state:2")
 
         if not cls.cache_dir:
+            print("load_state:3")
             cls.cache_dir = os.path.join(sublime.cache_path(), c.PLUGIN_NAME)
             cls.open_constellation_cache = os.path.join(
                 cls.cache_dir, "open_constellations"
             )
             if not os.path.isdir(cls.cache_dir):
+                print("load_state:4")
                 os.mkdir(cls.cache_dir)
 
         try:
+            print("load_state:5")
             with open(cls.open_constellation_cache) as cache:
+                print("load_state:6")
                 cls._open_constellations.update(
                     set(cache.read().splitlines()) & constellations.keys()
                 )
         except FileNotFoundError:
             pass
 
+        print("load_state:7")
         if not cls.state.get("did_migrate_open", False):
+            print("load_state:8")
             cls.do_migrate_open(constellations)
+        print("load_state:9")
 
     @classmethod
     def do_migrate_open(cls, constellations):
@@ -135,16 +145,63 @@ class API:
 
         self._open_constellations.add(name)
         self.save_constellation_cache()
-        # print(c.LOG_TEMPLATE, "Opened constellation:", name)
-        for project in self.projects_for(name):
+        print(
+            "about to open constellation",
+            name,
+            self._open_constellations,
+            [(win.id(), win.project_file_name()) for win in sublime.windows()],
+        )
+        projects_to_open = set(self.projects_for(name))
+        for project in projects_to_open:
             subl("-n", project)
             # sometimes multiple projects don't open right; this superstitious pause seems to help.
             time.sleep(0.200)
 
+        # DOING: lol
+        time.sleep(2)
+        """
+        print(
+            c.LOG_TEMPLATE,
+            "Opened constellation:",
+            name,
+            self._open_constellations,
+            [(win.id(), win.project_file_name()) for win in sublime.windows()],
+        )
+
+        waited = 0.0
+        print("awaiting all projects to open", projects_to_open)
+        while True:
+            win_projects = set([win.project_file_name() for win in sublime.windows()])
+            print("awaiting..., current window projects", win_projects)
+            if win_projects.isdisjoint(projects_to_open):
+                break
+            else:
+                time.sleep(0.200)
+                waited += 0.2
+
+        # time.sleep(2)
+        # waited += 2.0
+        print(
+            c.LOG_TEMPLATE,
+            waited,
+            "seconds after opening:",
+            name,
+            self._open_constellations,
+            [(win.id(), win.project_file_name()) for win in sublime.windows()],
+        )
+        # DOING: should this wait until it actually opens?
+        """
+
     def close_constellation(self, name):
+        print(
+            "about to close constellation",
+            name,
+            self._open_constellations,
+            [(win.id(), win.project_file_name()) for win in sublime.windows()],
+        )
         self._open_constellations.remove(name)
         self.save_constellation_cache()
-        # print(c.LOG_TEMPLATE, "Closed constellation:", name)
+        print(c.LOG_TEMPLATE, "Closed constellation:", name)
 
     def archive_constellation(self, name):
         defined = self.constellations
@@ -179,7 +236,14 @@ class API:
             # print(c.LOG_TEMPLATE, "Add project:", project, "to", name)
             if not already_open and name in self._open_constellations:
                 # open it, if the constellation is
+                print(
+                    "OPENING ADDED PROJECT",
+                    project,
+                    "WITH EXISTING WINDOWS",
+                    [(win.id(), win.project_file_name()) for win in sublime.windows()],
+                )
                 subl("-n", project)
+                time.sleep(2)
 
     def remove_from(self, name, project):
         if name and project:

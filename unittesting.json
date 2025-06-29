@@ -3,5 +3,7 @@
     "async": false,
     "verbosity": 5,
     "capture_console": true,
-    "reload_package_on_testing": false
+    "reload_package_on_testing": false,
+    "condition_timeout": 11000,
+    "generate_html_report": true
 }
