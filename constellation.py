@@ -199,14 +199,57 @@ class ManageProjectsInfoCommand(_BaseApplicationCommand):
     def description(self, *args):
         return "Constellation Projects"
 
+def commonprefix(l):
+    # something borrowed: https://stackoverflow.com/questions/21498939/how-to-circumvent-the-fallacy-of-pythons-os-path-commonprefix
+    # this unlike the os.path.commonprefix version
+    # always returns path prefixes as it compares
+    # path component wise
+    if getattr(os.path, "commonpath", None):
+        return os.path.commonpath(l)
+    cp = []
+    ls = [p.split('/') for p in l]
+    ml = min( len(p) for p in ls )
+
+    for i in range(ml):
+
+        s = set( p[i] for p in ls )
+        if len(s) != 1:
+            break
+
+        cp.append(s.pop())
+
+    return '/'.join(cp)
 
 class AddProjectCommand(_ActiveConstellationCommand):
     already_open = True
+
+    def guess_search_path(self):
+        """
+        Use common root of open projects to guess
+        where user stores theirs.
+
+        Uses lowercase comparison since caseless filesystems
+        may have a mix of upper/lower paths loaded in ST
+        without the user noticing, causing it to back out
+        further than necessary.
+
+        When there aren't open projects it'll fall back to the root which can be quite slow.
+
+        Caution:
+        I'm skeptical this is the "right" approach, but
+        it's a testing expediency for now. It would probably
+        be better to just add a command for setting the
+        project search root and disable all other commands
+        until one is set?
+        """
+        project_files = [y.lower() for y in [x.project_file_name() for x in sublime.windows()] if y]
+        return commonprefix(project_files) if project_files else os.path.expanduser("~")
 
     def input(self, args):
         return collect.ProjectList()
 
     def run(self, constellation, project):
+        print(self.__class__.__name__, "run", constellation, project)
         self.add_to(constellation, project, already_open=self.already_open)
 
 
@@ -220,7 +263,7 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
             return False
-        search_root = self.search_path
+        search_root = self.search_path if self.search_path else os.path.expanduser("~")
         return (
             True
             if search_root and len(search_root) and os.path.exists(search_root)
@@ -283,7 +326,10 @@ class FindProjectCommand(AddProjectCommand):
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
             return False
-        search_root = self.search_path
+
+        search_root = self.search_path if self.search_path else os.path.expanduser("~")
+
+        print(self.__class__.__name__, "is_enabled", args, "search_path", search_root, len(search_root), os.path.exists(search_root))
         return (
             True
             if search_root and len(search_root) and os.path.exists(search_root)
@@ -291,6 +337,7 @@ class FindProjectCommand(AddProjectCommand):
         )
 
     def input(self, args):
+        print(self.__class__.__name__, "input", args)
         return collect.FoundProjectList()
 
 
