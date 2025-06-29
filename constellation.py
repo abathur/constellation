@@ -9,6 +9,7 @@ import sublime_plugin
 
 import os
 import subprocess
+import time
 import json
 
 from .util import input_handlers as collect
@@ -17,11 +18,15 @@ from .util import constants as c
 
 
 def plugin_loaded():
+    print("plugin_loading")
     API.load_state()
+    print("plugin_loaded")
 
 
 def plugin_unloaded():
+    print("plugin_unloading")
     API.save_state()
+    print("plugin_unloaded")
 
 
 class _BaseApplicationCommand(sublime_plugin.ApplicationCommand, API):
@@ -125,7 +130,7 @@ class CreateConstellationFromOpenProjectCommand(_BaseApplicationCommand):
         self.add_constellation(name)
         self.open_constellation(name)
         # add project to eponymous constellation
-        self.add_to(name, project, already_open=True)
+        self.add_to(name, project, should_already_be_open=True)
 
 
 class CreateConstellationFromProjectFileCommand(_BaseApplicationCommand):
@@ -183,12 +188,48 @@ class CloseConstellationCommand(_OpenConstellationCommand):
         if constellation not in self._open_constellations:
             return
 
-        for project in self.projects_for(constellation):
-            for window in sublime.windows():
-                if window.project_file_name() == project:
-                    window.run_command("close_workspace")
-                    if window.id() != sublime.active_window().id():
-                        window.run_command("close_window")
+        any_pending = True
+        while any_pending:
+            print("1:start", any_pending)
+            any_pending = False
+            for project in self.projects_for(constellation):
+                print("2:project", project)
+                for window in sublime.windows():
+                    print("3: window", window.id(), window.project_file_name())
+                    if window.project_file_name() == project:
+                        print("idk", window.id(), window.project_file_name())
+
+                        def idk(win=window):
+                            print("mybffjill", win.id(), win.project_file_name())
+                            win.run_command("close_workspace")
+                            win.run_command("close_project")
+                            # any_pending = True
+
+                            if len(sublime.windows()) == 1:
+                                win.run_command("new_window")
+
+                            win.run_command("close_window")
+
+                        sublime.set_timeout_async(idk)
+                        # sublime.set_timeout_async(
+                        #     lambda: window.run_command("close_workspace"), 0
+                        # )
+                        # sublime.set_timeout_async(
+                        #     lambda: window.run_command("close_project"), 100
+                        # )
+                        # # any_pending = True
+
+                        # if len(sublime.windows()) == 1:
+                        #     sublime.set_timeout_async(
+                        #         lambda: window.run_command("new_window")
+                        #     )
+                        #     time.sleep(0.2)
+
+                        # sublime.set_timeout_async(
+                        #     lambda: window.run_command("close_window"), 200
+                        # )
+                        # time.sleep(0.2)
+
         self.close_constellation(constellation)
 
 
@@ -201,26 +242,28 @@ class ManageProjectsInfoCommand(_BaseApplicationCommand):
 
 
 class AddProjectCommand(_ActiveConstellationCommand):
-    already_open = True
+    should_already_be_open = True
 
     def input(self, args):
         return collect.ProjectList()
 
     def run(self, constellation, project):
-        self.add_to(constellation, project, already_open=self.already_open)
+        self.add_to(
+            constellation, project, should_already_be_open=self.should_already_be_open
+        )
 
 
 # We have opinions, and one of those is that workspaces are annoying to work with directly. Because of this opinion, the only way we're going to support working with them is by explicitly upgrading it to a project (but then replacing the project file with a link back to whatever project the workspace was in) so you get the benefits of having a workspace, but we don't have to have arcane methods of working with them.
 
 
 class UpgradeWorkspaceCommand(AddProjectCommand):
-    already_open = False
+    should_already_be_open = False
 
     def is_enabled(self, *args):
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
             return False
-        search_root = self.search_path
+        search_root = self.search_path if self.search_path else os.path.expanduser("~")
         return (
             True
             if search_root and len(search_root) and os.path.exists(search_root)
@@ -232,7 +275,6 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
 
     def run(self, constellation, workspace_path):
         if not workspace_path:
-            # print(c.LOG_TEMPLATE, "Nothing found to upgrade")
             return
 
         workspace = None
@@ -277,13 +319,24 @@ class UpgradeWorkspaceCommand(AddProjectCommand):
 
 
 class FindProjectCommand(AddProjectCommand):
-    already_open = False
+    should_already_be_open = False
 
     def is_enabled(self, *args):
         # TODO: remove below when there's a fallback
         if sublime.platform() == "windows":
             return False
-        search_root = self.search_path
+
+        search_root = self.search_path if self.search_path else os.path.expanduser("~")
+
+        print(
+            self.__class__.__name__,
+            "is_enabled",
+            args,
+            "search_path",
+            search_root,
+            len(search_root),
+            os.path.exists(search_root),
+        )
         return (
             True
             if search_root and len(search_root) and os.path.exists(search_root)
@@ -291,6 +344,7 @@ class FindProjectCommand(AddProjectCommand):
         )
 
     def input(self, args):
+        print(self.__class__.__name__, "input", args)
         return collect.FoundProjectList()
 
 
