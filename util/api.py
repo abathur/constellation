@@ -22,7 +22,6 @@ class API:
             )
             if not os.path.isdir(cls.cache_dir):
                 os.mkdir(cls.cache_dir)
-                os.path.mknod(cls.open_constellation_cache)
 
         try:
             with open(cls.open_constellation_cache) as cache:
