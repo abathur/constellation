@@ -6,8 +6,8 @@ class TestCore(DeferrableTestCase):
 
     def test_false(self):
         print("what?")
-        assert False, "AAAAA"
+        self.assertTrue(False, "AAAAA")
 
     def test_true(self):
         print("yawn")
-        assert True
+        self.assertTrue(True)
